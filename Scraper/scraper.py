@@ -22,25 +22,6 @@ def gen_project_url(project_id, name):
     project_url = "https://www.kickstarter.com/projects/" + project_id + "/" + name
     return  project_url
 
-def test_gen_project_url():
-
-# def get_campaign(row):
-#     if row['campaign'] == None:
-#         # try:
-#         content = urllib2.urlopen(row['url']).read()
-#         print "Content found"
-#         time.sleep(5)
-#         return content
-#         # except Exception:
-#             # print "Content not found found"
-#             # print row['url']
-#             # time.sleep(5)
-#             # return None
-#     else:
-#         print "Already have campaign"
-#         time.sleep(5)
-#         return row['campaign']
-
 def gen_path():
     my_path = os.path.abspath(os.path.dirname(__file__))
     path = os.path.join(my_path, "../data/mlks.db")
