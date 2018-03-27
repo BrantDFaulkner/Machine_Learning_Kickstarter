@@ -57,14 +57,3 @@ class KsUrlTest:
                     print x
             else:
                 print "Pass"
-
-
-# project_list =  [
-#     ("kkst139451001", "It Might Become a Movie", "https://www.kickstarter.com/projects/139451001/it-might-become-a-movie"),
-#     ("kkst1765345673", "365 Postcards", "https://www.kickstarter.com/projects/1765345673/365-postcards"),
-#     ("kkst858578162", "Up North Cookbook", "https://www.kickstarter.com/projects/858578162/up-north-cookbook"),
-#     ("kkst1714875186", "Take a postcard trip with Anita as she watercolors her way through Bosnia & Croatia", "https://www.kickstarter.com/projects/1714875186/take-a-postcard-trip-with-anita-as-she-watercolors")
-#     ("kkst858578162", "Up North Cookbook", "https://www.kickstarter.com/projects/700257702/gamecamp-athens")
-# ]
-
-# KsUrlTest(project_list).test()

@@ -1,3 +1,4 @@
+
 import sqlite3
 from sqlite3 import Error
 import os.path
@@ -27,28 +28,6 @@ def gen_connection(path):
     conn = create_connection(path)
     conn.text_factory = str
     return conn
-
-# def get_campaign():
-#     conn = gen_connection(gen_path())
-#     c = conn.cursor()
-#     c.execute('SELECT project_id, name, url, campaign FROM Projects WHERE campaign IS NULL LIMIT 1')
-#     data = c.fetchall()
-#     for row in data:
-#         project_id = row[0]
-#         print project_id
-#         project_name = row[1]
-#         print project_name
-#         # url = gen_project_url(project_id, name)
-#         ksurl = KsUrl(project_id, project_name)
-#         url = ksurl.gen_url()
-#         print url
-#         c.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [False, False, project_id])
-#         conn.commit()
-#         campaign = urllib2.urlopen(url).read()
-#         c.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [url, campaign, project_id])
-#         conn.commit()
-#     c.close()
-#     conn.close()
 
 def get_campaign():
     conn = gen_connection(gen_path())

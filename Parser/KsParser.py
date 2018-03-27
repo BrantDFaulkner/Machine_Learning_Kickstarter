@@ -59,4 +59,22 @@ def get_soup():
     c.close()
     conn.close()
 
-get_soup()
+# def validate_data(df_value, scrape_value):
+#     if df_value == scrape_value:
+#         print True
+#     else:
+#         print False
+#         print df_value
+#         print scrape_value
+#
+# def validate_project(project_tup, current_project):
+#     validate_data(project_tup.goal, current_project['goal'])
+#     validate_data(project_tup.country, current_project['country'])
+#     validate_data(project_tup.currency, current_project['currency'])
+#     validate_data(project_tup.deadline, current_project['deadline'])
+#     validate_data(project_tup.state_changed_at, current_project['state_changed_at'])
+#     validate_data(project_tup.created_at, current_project['created_at'])
+#     validate_data(project_tup.launched_at, current_project['launched_at'])
+#     validate_data(project_tup.backers_count, current_project['backers_count'])
+#     validate_data(project_tup.final_status, (1 if float(current_project['usd_pledged']) > current_project['goal'] else 0))
+#
