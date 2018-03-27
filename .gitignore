@@ -1,3 +1,4 @@
-*.db
-*.csv
+mlks.db
+train.csv
 .DS_Store
+*.pyc
