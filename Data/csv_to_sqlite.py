@@ -1,15 +1,8 @@
 
 import sqlite3
-# from sqlite3 import Error
 import os.path
 import csv
 import pandas as pd
-# import urllib2
-# import time
-
-
-
-
 
 def create_connection(db_file):
     try:
@@ -20,7 +13,7 @@ def create_connection(db_file):
     return None
 
 my_path = os.path.abspath(os.path.dirname(__file__))
-path = os.path.join(my_path, "mlks.db")
+path = os.path.join(my_path, "mlks_sample.db")
 conn = create_connection(path)
 conn.text_factory = str
 
