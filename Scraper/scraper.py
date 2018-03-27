@@ -5,6 +5,9 @@ import csv
 import pandas as pd
 import urllib2
 import time
+from KsUrl import KsUrl
+import numpy as np
+
 
 
 def create_connection(db_file):
@@ -14,13 +17,6 @@ def create_connection(db_file):
     except Error as e:
         print(e)
     return None
-
-def gen_project_url(project_id, name):
-    project_id = project_id[4:]
-    name = name.decode("utf-8")
-    name = name.lower().replace(' ', '-').replace('(', '').replace(')', '').replace('.', '').replace('---', '-').replace('"', '').replace("'", '')[:50]
-    project_url = "https://www.kickstarter.com/projects/" + project_id + "/" + name
-    return  project_url
 
 def gen_path():
     my_path = os.path.abspath(os.path.dirname(__file__))
@@ -32,17 +28,41 @@ def gen_connection(path):
     conn.text_factory = str
     return conn
 
+# def get_campaign():
+#     conn = gen_connection(gen_path())
+#     c = conn.cursor()
+#     c.execute('SELECT project_id, name, url, campaign FROM Projects WHERE campaign IS NULL LIMIT 1')
+#     data = c.fetchall()
+#     for row in data:
+#         project_id = row[0]
+#         print project_id
+#         project_name = row[1]
+#         print project_name
+#         # url = gen_project_url(project_id, name)
+#         ksurl = KsUrl(project_id, project_name)
+#         url = ksurl.gen_url()
+#         print url
+#         c.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [False, False, project_id])
+#         conn.commit()
+#         campaign = urllib2.urlopen(url).read()
+#         c.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [url, campaign, project_id])
+#         conn.commit()
+#     c.close()
+#     conn.close()
+
 def get_campaign():
     conn = gen_connection(gen_path())
     c = conn.cursor()
-    c.execute('SELECT project_id, name, url, campaign FROM Projects WHERE campaign IS NULL LIMIT 1')
+    c.execute('SELECT project_id, keywords, url, campaign FROM Projects WHERE campaign IS NULL or campaign = 0 LIMIT 1')
     data = c.fetchall()
     for row in data:
         project_id = row[0]
         print project_id
-        name = row[1]
-        print name
-        url = gen_project_url(project_id, name)
+        keywords = row[1]
+        print keywords
+        # url = gen_project_url(project_id, name)
+        ksurl = KsUrl(project_id, keywords)
+        url = ksurl.gen_url()
         print url
         c.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [False, False, project_id])
         conn.commit()
@@ -52,9 +72,11 @@ def get_campaign():
     c.close()
     conn.close()
 
-for i in range(1, 100):
+for i in range(1, 10000):
     get_campaign()
-    time.sleep(30)
+    sleep = np.random.normal(30,4,1)
+    print sleep
+    time.sleep(sleep)
 
 
 # def del_and_update():
