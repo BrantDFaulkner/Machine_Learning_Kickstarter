@@ -1,5 +1,5 @@
 ---
-title: "Kaggle Kickstarter"
+title: "WebRobots_ExploratoryAnalysis"
 output: word_document
 ---
 
@@ -13,7 +13,9 @@ library(dplyr)
 library(readr)
 library(anytime)
 
-setwd("~//Downloads/drive-download-20180316T152654Z-001") # Folder of WebRobots data
+setwd("~//Downloads/drive-download-20180316T152654Z-001")
+# Folder of WebRobots data
+# Uploaded from local machine because I couldn't figure out Drive path
 file.names <- list.files("~/Downloads/drive-download-20180316T152654Z-001")
 All <- lapply(file.names, function (i) {
   read_csv(i, col_names = FALSE, skip = 1)
@@ -81,7 +83,7 @@ Kickstarter_filtered <- Kickstarter %>%
   filter(country == "US")
 
 # Add variables
-Kickstarter_filtered <- mutate(Kickstarter_filtered, percent_funded = 
+Kickstarter_filtered <- mutate(Kickstarter_filtered, percent_funded =
                                  round((Kickstarter_filtered$pledged/Kickstarter_filtered$goal*100),2))
 ```
 
@@ -96,8 +98,8 @@ Kickstarter_filtered %>%
   group_by(state) %>%
   summarise(n(),
             mean(percent_funded, na.rm = TRUE), sd(percent_funded, na.rm = TRUE),
-            min(percent_funded, na.rm = TRUE), median(percent_funded, na.rm = TRUE), max(percent_funded, na.rm = TRUE), 
-            mean(backers_count), sd(backers_count), 
+            min(percent_funded, na.rm = TRUE), median(percent_funded, na.rm = TRUE), max(percent_funded, na.rm = TRUE),
+            mean(backers_count), sd(backers_count),
             min(backers_count), median(backers_count), max(backers_count))
 
 Kickstarter_filtered %>%
@@ -126,7 +128,7 @@ Not enough project that barely failed.
 ```{r}
 Kickstarter_filtered %>%
   filter(percent_funded <= 400) %>%
-  ggplot() + 
+  ggplot() +
   geom_histogram(aes(percent_funded), binwidth = 10)
 
 barely_successful <- Kickstarter_filtered %>%
