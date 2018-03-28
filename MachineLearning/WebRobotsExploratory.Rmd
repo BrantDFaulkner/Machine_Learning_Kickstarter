@@ -1,0 +1,159 @@
+---
+title: "Kaggle Kickstarter"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Import and Append WebRobots Data
+```{r}
+library(dplyr)
+library(readr)
+library(anytime)
+
+setwd("~//Downloads/drive-download-20180316T152654Z-001") # Folder of WebRobots data
+file.names <- list.files("~/Downloads/drive-download-20180316T152654Z-001")
+All <- lapply(file.names, function (i) {
+  read_csv(i, col_names = FALSE, skip = 1)
+})
+Kickstarter <- do.call(rbind.data.frame, All)
+colnames(Kickstarter) <- c("backers_count",
+                           "blurb",
+                           "category",
+                           "converted_pledged_amount",
+                           "country",
+                           "created_at",
+                           "creator",
+                           "currency",
+                           "currency_symbol",
+                           "currency_trailing_code",
+                           "current_currency",
+                           "deadline",
+                           "disable_communication",
+                           "fx_rate",
+                           "goal",
+                           "id",
+                           "is_starrable",
+                           "launched_at",
+                           "name",
+                           "photo",
+                           "pledged",
+                           "profile",
+                           "slug",
+                           "source_url",
+                           "spotlight",
+                           "staff_pick",
+                           "state",
+                           "state_changed_at",
+                           "static_usd_rate",
+                           "urls",
+                           "usd_pledged",
+                           "usd_type",
+                           "location",
+                           "friends",
+                           "is_backing",
+                           "is_starred",
+                           "permissions")
+Kickstarter <- select(Kickstarter, -friends, -is_backing, -is_starred, -permissions)
+head(Kickstarter)
+
+Kickstarter$state_changed_at<- anytime(Kickstarter$state_changed_at)
+Kickstarter$created_at<- anytime(Kickstarter$created_at)
+Kickstarter$deadline<- anytime(Kickstarter$deadline)
+Kickstarter$launched_at<- anytime(Kickstarter$launched_at)
+```
+
+## Clean data
+```{r}
+# One entry per project
+# Only US projects
+duplicates <- nrow(Kickstarter) - length(unique(Kickstarter$id))
+print(duplicates)
+
+Kickstarter <- Kickstarter %>%
+arrange(id, desc(state_changed_at)) %>%
+mutate(duplicated = duplicated(id))
+
+Kickstarter_filtered <- Kickstarter %>%
+  filter(duplicated == FALSE) %>%
+  filter(country == "US")
+
+# Add variables
+Kickstarter_filtered <- mutate(Kickstarter_filtered, percent_funded = 
+                                 round((Kickstarter_filtered$pledged/Kickstarter_filtered$goal*100),2))
+```
+
+## Descriptive Statistics and Visualization
+```{r}
+library(ggplot2)
+
+ggplot() +
+  geom_point(aes(x = id, y = percent_funded), data = Kickstarter_filtered)
+
+Kickstarter_filtered %>%
+  group_by(state) %>%
+  summarise(n(),
+            mean(percent_funded, na.rm = TRUE), sd(percent_funded, na.rm = TRUE),
+            min(percent_funded, na.rm = TRUE), median(percent_funded, na.rm = TRUE), max(percent_funded, na.rm = TRUE), 
+            mean(backers_count), sd(backers_count), 
+            min(backers_count), median(backers_count), max(backers_count))
+
+Kickstarter_filtered %>%
+  filter(state == "failed") %>%
+  ggplot() +
+  geom_point(aes(x = id, y = percent_funded))
+
+Kickstarter_filtered %>%
+  filter(state == "failed") %>%
+  ggplot() +
+  geom_point(aes(x = goal, y = percent_funded))
+
+Kickstarter_filtered %>%
+  filter(state == "successful") %>%
+  ggplot() +
+  geom_point(aes(x = id, y = percent_funded))
+
+Kickstarter_filtered %>%
+  filter(state == "successful") %>%
+  ggplot() +
+  geom_point(aes(x = goal, y = percent_funded))
+```
+
+## Regression Discontinuity
+Not enough project that barely failed.
+```{r}
+Kickstarter_filtered %>%
+  filter(percent_funded <= 400) %>%
+  ggplot() + 
+  geom_histogram(aes(percent_funded), binwidth = 10)
+
+barely_successful <- Kickstarter_filtered %>%
+  filter(state == "successful") %>%
+  filter(percent_funded <= 110)
+nrow(barely_successful)
+
+barely_failed <- Kickstarter_filtered %>%
+  filter(state == "failed") %>%
+  filter(percent_funded >= 90)
+nrow(barely_failed)
+```
+
+## Regression
+```{r}
+library(stargazer)
+
+m <- lm(percent_funded ~ goal + backers_count + as.factor(spotlight) + as.factor(staff_pick), data = Kickstarter_filtered)
+stargazer(m, type = "text")
+```
+
+## Import Kaggle Data
+
+```{r}
+test <- read_csv("~/Downloads/test.csv")
+View(test)
+train <- read_csv("~/Downloads/train.csv")
+View(train)
+```
+```
