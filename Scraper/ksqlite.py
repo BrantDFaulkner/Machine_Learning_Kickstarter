@@ -42,10 +42,10 @@ class ksqlite:
         cursor.close()
 
 # CONVERT CSV TO SQLite
-# ksq = KsSqlite()
-# db_file_path = ksq.abs_file_path("mlks_sample.db")
+# ksq = ksqlite()
+# db_file_path = ksq.abs_file_path("../Data/mlks_sample.db")
 # db_connection = ksq.db_connection(db_file_path)
-# df = ksq.csv_to_sqlite("train_sample.csv", db_connection, "Projects")
+# df = ksq.csv_to_sqlite("../Data/train_sample.csv", db_connection, "Projects")
 
 # ADD NEW COLUMNS
 # cur.execute("ALTER TABLE Projects ADD 'url' 'TEXT';")
