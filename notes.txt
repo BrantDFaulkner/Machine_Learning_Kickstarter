@@ -1,0 +1,41 @@
+
+TERMINAL COMMANDS
+ls - list
+cd - change directory
+python file_name
+
+
+GIT
+git clone "clone url"
+
+git status
+git add file_name
+git commit
+git push origin branch_name
+
+git checkout -b new_branch_name
+git checkout existing_branch_name
+git status
+git add file/directory name
+git commit -m "uploading r code"
+git push origin branch_name
+-> Visit Github
+-> New pull request
+-> Merge & Delete
+git pull origin master
+
+
+NICE TO HAVE
+atom command: https://stackoverflow.com/questions/22390709/how-to-open-atom-editor-from-command-line-in-os-x
+bash profile: text highlighting/foramtting on command line
+auto save in atom
+db browser for sqlite
+
+NOTES
+ksqlite is a pckage Brant made to run SQL through python
+db_connection established connection to database
+SQL - Create, Read, Update, Destroy
+Select = read
+FROM, WHERE = update
+cursor goes to the database and populates the empty fields
+SQL is a bitch - be careful about accidentally overwriting files

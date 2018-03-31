@@ -36,7 +36,7 @@ class kparse:
             about = self.get_text(soup)
             print about #poc text parse
             x = self.json_text(soup)
-            print x["category"]["color"] #poc dictionary parse
+            print x["category"]["name"] #poc dictionary parse
         c.close()
         conn.close()
 
