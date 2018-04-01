@@ -25,7 +25,7 @@ class kscrape:
     def crawl_campaigns(self):
         while True:
             self.get_campaign()
-            sleep = np.random.normal(30,4,1)
+            sleep = np.random.normal(15,2,1)
             time.sleep(sleep)
 
 kscrape().crawl_campaigns()
