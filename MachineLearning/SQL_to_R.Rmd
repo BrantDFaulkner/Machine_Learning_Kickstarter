@@ -1,0 +1,56 @@
+---
+title: "SQL_to_R"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Read SQL Database into R
+
+## Intall or load required packages
+```{r}
+#install.packages("DBI")
+library(DBI)
+#install.packages("RSQLite")
+library(RSQLite)
+```
+
+## Establish database connection
+```{r}
+setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/")
+
+mydb <- dbConnect(RSQLite::SQLite(),"mlks_parsed.db")
+# using RSQLite and DBI
+```
+
+## Pull data from database
+```{r}
+db <- dbGetQuery(mydb, 'SELECT * from Projects')
+```
+
+## Disconnect and Delete
+To avoid potential issues from having multiple open connections
+```{r}
+dbDisconnect(mydb)
+unlink("~/mlks_parsed.db")
+```
+
+## Make a Function to Handle Multiple db Files
+Not sure if this will run, but a potential solution to merge multiple databases from scraping
+```{r}
+x <- "~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/"
+
+SQL_to_R <- function(x) {
+  db <- data.frame()
+  setwd(x)
+  files <- as.matrix(list.files(x))
+  for (i in files) {
+    mydb <- dbConnect(RSQLite::SQLite(), "i")
+    db <- rbind(dbGetQuery(mydb, 'SELECT * from Projects'))
+    dbDisconnect(mydb)
+    unlink("~/i")
+  }
+}
+```
