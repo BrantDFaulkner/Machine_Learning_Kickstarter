@@ -15,29 +15,42 @@ knitr::opts_chunk$set(echo = TRUE)
 library(DBI)
 #install.packages("RSQLite")
 library(RSQLite)
-#install.packages(sqldf)
-library(sqldf)
 ```
 
 ## Establish database connection
 ```{r}
-setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/Machine_Learning_Kickstarter")
+setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/")
 
-mydb <- dbConnect(RSQLite::SQLite(),"mlks_sample.db")
+mydb <- dbConnect(RSQLite::SQLite(),"mlks_parsed.db")
 # using RSQLite and DBI
-
-read.csv.sql("~/Data/mlks_sample.db", sql = "select * from file")
-# Using sqldf
 ```
 
 ## Pull data from database
 ```{r}
-dbGetQuery(mydb, 'SELECT * from Projects')
+db <- dbGetQuery(mydb, 'SELECT * from Projects')
 ```
 
 ## Disconnect and Delete
 To avoid potential issues from having multiple open connections
 ```{r}
 dbDisconnect(mydb)
-unlink("~/Data/mlks_sample.db")
+unlink("~/mlks_parsed.db")
+```
+
+## Make a Function to Handle Multiple db Files
+Not sure if this will run, but a potential solution to merge multiple databases from scraping
+```{r}
+x <- "~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/"
+
+SQL_to_R <- function(x) {
+  db <- data.frame()
+  setwd(x)
+  files <- as.matrix(list.files(x))
+  for (i in files) {
+    mydb <- dbConnect(RSQLite::SQLite(), "i")
+    db <- rbind(dbGetQuery(mydb, 'SELECT * from Projects'))
+    dbDisconnect(mydb)
+    unlink("~/i")
+  }
+}
 ```
