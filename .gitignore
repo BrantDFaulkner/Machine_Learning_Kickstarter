@@ -2,3 +2,5 @@ mlks.db
 train.csv
 .DS_Store
 *.pyc
+.RData
+.Rhistory
