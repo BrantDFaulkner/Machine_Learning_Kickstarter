@@ -1,5 +1,9 @@
 ---
-output: github_document
+output:
+  github_document:
+    toc: true
+    
+    
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -11,4 +15,5 @@ knitr::opts_chunk$set(
 )
 ```
 
-#Hello World
+# Hello World
+## World 1
