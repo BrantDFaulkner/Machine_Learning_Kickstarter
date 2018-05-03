@@ -12,16 +12,23 @@ class kscrape:
         campaign_url = "https://www.kickstarter.com/projects/" + project_id + "/" + project_keywords
         return  campaign_url
 
-    # def get_campaign(self):
-    #     ksql = ksqlite()
-    #     db_connection = ksql.db_connection(ksql.abs_file_path("../Data/mlks.db"))
-    #     project = ksql.select_campaign_is_null(db_connection)
-    #     url = self.campaign_url(project["id"], project["keywords"])
-    #     print url #visual cl progress
-    #     campaign = urllib2.urlopen(url).read()
-    #     ksql.update_campaign(db_connection, url, campaign, project["id"])
-    #     db_connection.close()
-    #     return campaign
+    def get_creator_backers(self):
+
+        def url_creator_backers(creator_id):
+            creator_url = "https://www.kickstarter.com/profile/" + creator_id
+            return creator_url
+
+        ksql_scraped = ksqlite("../Data/mlks_scraped.db")
+        creator_ids = ksql_scraped.select_creator_ids_where_backers_is_null()
+        count = len(creator_ids)
+        for creator_id in creator_ids:
+            url = url_creator_backers(creator_id)
+            print(url)
+            count = count -1
+            print(count)
+            backers = urllib.request.urlopen(url).read()
+            ksql_scraped.update_field("Creators", "backers", backers, "creator_id", creator_id)
+            time.sleep(1.5)
 
     def get_campaign(self):
         ksql = ksqlite()
@@ -43,22 +50,23 @@ class kscrape:
             except:
                 pass
 
-    def creator_url(self, creator_id):
-        creator_url = "https://www.kickstarter.com/profile/" + creator_id + "/about"
-        return creator_url
-
     def get_creator(self):
-        ksql = ksqlite()
-        db_connection = ksql.db_connection(ksql.abs_file_path("../Data/mlks.db"))
-        creators = ksql.select_creator_about_is_null(db_connection)
-        for creator in creators:
-            url = self.creator_url(creator["id"])
-            print(url)
-            about = urllib.request.urlopen(url).read()
-            ksql.update_creator_about(db_connection, about, creator["id"])
-            time.sleep(5)
-        db_connection.close()
 
+        def url_creator_about(creator_id):
+            creator_url = "https://www.kickstarter.com/profile/" + creator_id + "/about"
+            return creator_url
+
+        ksql_scraped = ksqlite("../Data/mlks_scraped.db")
+        creator_ids = ksql_scraped.select_creator_ids_where_about_is_null()
+        count = len(creator_ids)
+        for creator_id in creator_ids:
+            url = url_creator_about(creator_id)
+            print(url)
+            count = count -1
+            print(count)
+            about = urllib.request.urlopen(url).read()
+            ksql_scraped.update_field("Creators", "about", about, "creator_id", creator_id)
+            time.sleep(1.5)
 
     def crawl_creators(self):
         while True:
@@ -67,8 +75,14 @@ class kscrape:
             except:
                 pass
 
+    def crawl_creator_backers(self):
+        while True:
+            try:
+                self.get_creator_backers()
+            except:
+                pass
 
 
-
-kscrape().crawl_campaigns()
-# kscrape().crawl_campaigns()
+# =============================================================================
+# =============================================================================
+kscrape().crawl_creator_backers()

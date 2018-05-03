@@ -1,5 +1,5 @@
 ---
-title: "SQL_to_R"
+title: "Brant Expolores"
 output:
   html_document: default
   word_document: default
@@ -15,11 +15,13 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(DBI)
 library(RSQLite)
+library(dplyr)
+library(tidyverse)
+library(glmnet)
 ```
 
 ## Establish database connection
 ```{r}
-
 mydb <- dbConnect(RSQLite::SQLite(),"../Data/mlks_parsed.db")
 ```
 
@@ -82,6 +84,7 @@ rm(df_success)
 rm(df_errors)
 
 ```
+
 ## Explore $backers_count
 Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
 ```{r}
@@ -116,17 +119,11 @@ rm(logit_backers_count)
 drop <- c("backers_count")
 df <- df[ , !(names(df) %in% drop)]
 
-=======
-setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/")
-
-mydb <- dbConnect(RSQLite::SQLite(),"mlks_parsed.db")
-# using RSQLite and DBI
 ```
 
 ## Explore $disable_communication
 This is not a user initiated setting, rather an effect of a project being suspended.
 ```{r}
-
 df_filtered_disable_communicaiotn <- df %>%
   filter(disable_communication == "True")
 
@@ -144,7 +141,7 @@ rm(df_filtered_disable_communicaiotn)
 rm(df_filtered_state_suspended)
 ```
 
-##Explore currency
+##Explore $currency
 Current data shows only US currency, and therefore these variables are not predictive. As data set grows, we may see the introduction of new currency.
 ```{r}
 unique(df$currency)
@@ -156,10 +153,48 @@ unique(df$currency_symbol)
 #Drop suspension related columns
 drop <- c("currency", "current_currency", "currency_trailing_code", "creator_chosen_currency", "currency_symbol")
 df <- df[ , !(names(df) %in% drop)]
-=======
-db <- dbGetQuery(mydb, 'SELECT * from Projects')
 ```
 
+## Explore $goal
+Goal is likely a good predicter
+```{r}
+df$goal <- as.numeric(df$goal)
+df$goal %>%
+  summary()
+
+#Linear Model
+lm_goal <- glm(successful ~ goal, data = df)
+summary(lm_goal)
+
+#Logit; Filtered for visual 
+df_filtered_by_goal <- df %>%
+  filter(goal < 200000)
+
+logit_goal <- glm(successful ~ goal, data = df_filtered_by_goal, family=binomial(link='logit'))
+
+df_filtered_by_goal %>%
+  ggplot() +
+  theme_minimal() +
+  ggtitle("$backers_count Logistic Model") +
+  geom_point(aes(x=goal, y=successful), colour = "black") +
+  geom_point(aes(x=goal, y=logit_goal$fitted.values), colour = "red")
+
+```
+
+## Explore Video
+None corresponds to NA in all the other video fields. NA corresponds to having the other fields populated. As such, NA means there is a video. T test shows having a video to statistically significantly impact the success of the project. 
+```{r}
+unique(df$video)
+video_none <- df %>%
+  filter(video == "None")
+
+video_na <- df %>%
+  filter(is.na(video))
+
+t.test(video_none$successful, video_na$successful)
+
+unique(df$video)
+```
 
 
 
@@ -167,23 +202,5 @@ db <- dbGetQuery(mydb, 'SELECT * from Projects')
 To avoid potential issues from having multiple open connections
 ```{r}
 dbDisconnect(mydb)
-unlink("~/mlks_parsed.db")
-```
-
-## Make a Function to Handle Multiple db Files
-Not sure if this will run, but a potential solution to merge multiple databases from scraping
-```{r}
-x <- "~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/"
-
-SQL_to_R <- function(x) {
-  db <- data.frame()
-  setwd(x)
-  files <- as.matrix(list.files(x))
-  for (i in files) {
-    mydb <- dbConnect(RSQLite::SQLite(), "i")
-    db <- rbind(dbGetQuery(mydb, 'SELECT * from Projects'))
-    dbDisconnect(mydb)
-    unlink("~/i")
-  }
-}
+unlink("~/Data/mlks_sample.db")
 ```
