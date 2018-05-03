@@ -48,9 +48,9 @@ class ksqlite:
         cursor.close()
 
 
-    def update_campaign(self, db_connection, url, campaign, project_id):
+    def update_campaign(self, db_connection, campaign, project_id):
         cursor = db_connection.cursor()
-        cursor.execute('UPDATE Projects SET url = ?, campaign = ? WHERE project_id = ?', [url, campaign, project_id])
+        cursor.execute('UPDATE Projects SET campaign = ? WHERE project_id = ?', [campaign, project_id])
         db_connection.commit()
         cursor.close()
 

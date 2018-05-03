@@ -32,14 +32,14 @@ class kscrape:
 
     def get_campaign(self):
         ksql = ksqlite()
-        db_connection = ksql.db_connection(ksql.abs_file_path("../Data/mlks.db"))
+        db_connection = ksql.db_connection(ksql.abs_file_path("../Data/projects_courtney.db"))
         projects = ksql.select_campaign_is_null(db_connection)
         print(projects)
         for project in projects:
             url = self.campaign_url(project["id"], project["keywords"])
             print(url) #visual cl progress
-            campaign = urlopen.urlopen(url).read()
-            ksql.update_campaign(db_connection, url, campaign, project["id"])
+            campaign = urllib.request.urlopen(url).read()
+            ksql.update_campaign(db_connection, campaign, project["id"])
             time.sleep(10)
         db_connection.close()
 

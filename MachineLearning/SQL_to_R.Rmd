@@ -15,13 +15,11 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r}
 library(DBI)
 library(RSQLite)
-library(dplyr)
-library(tidyverse)
-library(glmnet)
 ```
 
 ## Establish database connection
 ```{r}
+
 mydb <- dbConnect(RSQLite::SQLite(),"../Data/mlks_parsed.db")
 ```
 
@@ -84,7 +82,6 @@ rm(df_success)
 rm(df_errors)
 
 ```
-
 ## Explore $backers_count
 Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
 ```{r}
@@ -119,11 +116,17 @@ rm(logit_backers_count)
 drop <- c("backers_count")
 df <- df[ , !(names(df) %in% drop)]
 
+=======
+setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/")
+
+mydb <- dbConnect(RSQLite::SQLite(),"mlks_parsed.db")
+# using RSQLite and DBI
 ```
 
 ## Explore $disable_communication
 This is not a user initiated setting, rather an effect of a project being suspended.
 ```{r}
+
 df_filtered_disable_communicaiotn <- df %>%
   filter(disable_communication == "True")
 
@@ -153,6 +156,8 @@ unique(df$currency_symbol)
 #Drop suspension related columns
 drop <- c("currency", "current_currency", "currency_trailing_code", "creator_chosen_currency", "currency_symbol")
 df <- df[ , !(names(df) %in% drop)]
+=======
+db <- dbGetQuery(mydb, 'SELECT * from Projects')
 ```
 
 
@@ -162,5 +167,23 @@ df <- df[ , !(names(df) %in% drop)]
 To avoid potential issues from having multiple open connections
 ```{r}
 dbDisconnect(mydb)
-unlink("~/Data/mlks_sample.db")
+unlink("~/mlks_parsed.db")
+```
+
+## Make a Function to Handle Multiple db Files
+Not sure if this will run, but a potential solution to merge multiple databases from scraping
+```{r}
+x <- "~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/"
+
+SQL_to_R <- function(x) {
+  db <- data.frame()
+  setwd(x)
+  files <- as.matrix(list.files(x))
+  for (i in files) {
+    mydb <- dbConnect(RSQLite::SQLite(), "i")
+    db <- rbind(dbGetQuery(mydb, 'SELECT * from Projects'))
+    dbDisconnect(mydb)
+    unlink("~/i")
+  }
+}
 ```
