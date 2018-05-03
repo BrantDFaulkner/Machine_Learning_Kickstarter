@@ -1,0 +1,750 @@
+---
+title: "Kickstarter"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: simplex
+    fig_caption: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#### Load packages
+```{r}
+library(DBI)
+library(RSQLite)
+library(MASS)
+library(tidyverse)
+library(glmnet)
+library(tidytext)
+library(anytime)
+library(ggplot2)
+#library(car)
+library(lubridate)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+#library(stm)
+#library(quanteda)
+library(dplyr)
+```
+
+
+#### SQL to R
+## Reads entire SQL database into R as a data frame called db.
+```{r}
+mydb <- dbConnect(SQLite(), dbname = "../Data/mlks_parsed copy.db")
+db <- dbGetQuery(conn = mydb, 'SELECT * FROM Projects')
+creators <- dbGetQuery(conn = mydb, 'SELECT * FROM Creators')
+dbDisconnect(mydb)
+unlink("../Data/mlks_parsed copy.db")
+```
+
+
+#### Data Cleaning
+
+## Merge db and creators
+```{r}
+db <- left_join(db, creators, by = "creator_id")
+rm(creators)
+```
+
+## Examine db
+Understand available explanatory variables and make the data friendly for analysis.
+```{r}
+# 120 columns, 50,596 rows
+ncol(db)
+nrow(db)
+names(db)
+
+# Most projects are successful or failed, but there are other end states.
+db %>%
+  ggplot() +
+  aes(db$state) +
+  geom_histogram(stat = "count")
+```
+
+## Check redundant variables
+```{r}
+# Returns 'COMPLETE' if two columns are exactly the same.
+#Returns 'FALSE', 'COMPLETE' if two columns are different.
+redundant <- function(x, y) {
+  i <- 1
+  if(x[i] == y[i]) {
+    i = i + 1
+    } else {
+      print("FALSE")
+      i = i + 1
+    }
+  print("COMPLETE")
+}
+
+# Six variables in db are redundant
+redundant(db$profile_id, db$profile_project_id)
+redundant(db$currency, db$current_currency)
+redundant(db$pledged, db$usd_pledged)
+redundant(db$location_localized_name, db$location_name)
+redundant(db$location_displayable_name, db$location_short_name)
+redundant(db$profile_id, db$profile_project_id)
+```
+
+## Check variables with only one level
+```{r}
+# Six variables with only one level; remove these in db_cleaned.
+for (j in 1:ncol(db)) {
+  if (length(unique(db[[j]])) == 1) {
+    print(colnames(db)[j])
+  }
+}
+```
+
+## Reformat variables
+```{r}
+# Remove meaningless character strings
+db$project_id[] <- lapply(db$project_id, gsub, pattern = 'kkst', replacement = '')
+db[] <- lapply(db, gsub, pattern = '&#39;', replacement = '')
+db[] <- lapply(db, gsub, pattern = ' &amp; ', replacement = '&')
+db$category_slug[] <- lapply(db$category_slug, gsub, pattern = ' ', replacement = '_')
+
+# SQL database imported all variables as character type; change non-character variables.
+db$project_id <- as.integer(db$project_id)
+db$backers_count <- as.integer(db$backers_count)
+db$canceled_at <- as.Date(anytime(as.numeric(db$canceled_at)))
+db$category_color <- as.integer(db$category_color)
+db$category_id <- as.integer(db$category_id)
+db$category_parent_id <- as.integer(db$category_parent_id)
+db$category_position <- as.integer(db$category_position)
+db$comments_count <- as.integer(db$comments_count)
+db$converted_pledged_amount <- round(as.numeric(db$converted_pledged_amount), 2)
+db$created_at <- as.Date(anytime(as.numeric(db$created_at)))
+db$creator_id <- as.integer(db$creator_id)
+db$deadline <- as.Date(anytime(as.numeric(db$deadline)))
+db$failed_at <- as.Date(anytime(as.numeric(db$failed_at)))
+db$fx_rate <- round(as.numeric(db$fx_rate), 2)
+db$goal <- round(as.numeric(db$goal), 2)
+db$id <- as.integer(db$id)
+db$launched_at <- as.Date(anytime(as.numeric(db$launched_at)))
+db$location_id <- as.integer(db$location_id)
+db$pledged <- round(as.numeric(db$pledged), 2)
+db$potd_at <- as.Date(anytime(as.numeric(db$potd_at)))
+db$profile_background_image_attributes_id <- as.integer(db$profile_background_image_attributes_id)
+db$profile_background_image_opacity <- round(as.numeric(db$profile_background_image_opacity), 1)
+db$profile_feature_image_attributes_id <- as.integer(db$profile_feature_image_attributes_id)
+db$profile_id <- as.integer(db$profile_id)
+db$profile_link_text_color <- as.integer(db$profile_link_text_color)
+db$profile_project_id <- as.integer(db$profile_project_id)
+db$profile_state_changed_at <- as.Date(anytime(as.numeric(db$profile_state_changed_at)))
+db$state_changed_at <- as.Date(anytime(as.numeric(db$state_changed_at)))
+db$static_usd_rate <- round(as.numeric(db$static_usd_rate), 2)
+db$successful_at <- as.Date(anytime(as.numeric(db$successful_at)))
+db$suspended_at <- as.Date(anytime(as.numeric(db$suspended_at)))
+db$updated_at <- as.Date(anytime(as.numeric(db$updated_at)))
+db$updates_count <- as.integer(db$updates_count)
+db$usd_pledged <- round(as.numeric(db$usd_pledged), 2)
+db$video_height <- as.integer(db$video_height)
+db$video_id <- as.integer(db$video_id)
+db$video_width <- as.integer(db$video_width)
+```
+
+## Make db_cleaned
+```{r}
+# Remove unecessary variables
+db_cleaned <- dplyr::select(db, 
+                     -category_id, -category_color, -category_position, -category_name, 
+                     -category_urls_web_discover, 
+                     -creator_avatar_medium, -creator_avatar_small, -creator_avatar_thumb, 
+                     -creator_chosen_currency, 
+                     -creator_id, -creator_slug, 
+                     -creator_is_registered, 
+                     -creator_urls_api_user, -creator_urls_web_user, 
+                     -currency_symbol, -currency_trailing_code, -current_currency, 
+                     -disable_communication, 
+                     -id, 
+                     -is_starrable, 
+                     -items, 
+                     -livestreams, 
+                     -location_country, -location_id, -location_is_root, 
+                     -location_localized_name, -location_short_name, -location_slug,
+                     -location_urls_api_nearby_projects, -location_urls_web_discover, -location_urls_web_location,
+                     -photo_1024x576, -photo_1536x864, 
+                     -photo_ed, -photo_full, -photo_little, -photo_med, -photo_small, -photo_thumb, 
+                     -profile_background_color, -profile_background_image_attributes_id, 
+                     -profile_background_image_attributes_image_urls_baseball_card, 
+                     -profile_background_image_attributes_image_urls_default, -profile_background_image_opacity, 
+                     -profile_feature_image_attributes_id,
+                     -profile_feature_image_attributes_image_urls_baseball_card, 
+                     -profile_feature_image_attributes_image_urls_default,
+                     -profile_id, -profile_project_id, 
+                     -profile_link_background_color, -profile_link_text, -profile_link_text_color, 
+                     -profile_link_url, -profile_name, 
+                     -profile_should_show_feature_image_section, -profile_show_feature_image, 
+                     -profile_text_color, 
+                     -slug, 
+                     -suspended_at, -canceled_at, -potd_at, -profile_state_changed_at, 
+                     -urls_api_comments, -urls_api_project, -urls_api_updates, 
+                     -urls_web_project, -urls_web_project_short, -urls_web_rewards, -urls_web_updates, 
+                     -usd_pledged, -usd_type, -video, 
+                     -video_base, -video_frame, -video_height, -video_high, -video_hls, -video_id, -video_width)
+
+# Additional feature engineering
+db_cleaned <- mutate(db_cleaned, 
+                     social_media = as.numeric(as.character(factor(
+                       (!is.na(facebook) & !is.na(twitter) & !is.na(youtube)), labels = c(0, 1)))),
+                     description_length = nchar(full_description), 
+                     campaign_duration = round((deadline - launched_at), 2),
+                     avg_contribution = round((pledged/backers_count), 2),
+                     percent_funded = round((pledged/goal*100), 2))
+
+
+# Consider only failed or successful projects for binomial classification
+state_list <- c("failed", "successful")
+db_cleaned <- db_cleaned[db_cleaned$state %in% state_list,]
+rm(state_list)
+
+# Use NA to replace 'None'
+db_cleaned$profile_blurb[] <- lapply(db_cleaned$profile_blurb, gsub, pattern = 'None', replacement = NA)
+
+# Use 0/1 to replace 'False'/'True' and 'failed'/'successful'
+# Photo - has (1), does not have (0)
+db_cleaned$photo_key[!is.na(db_cleaned$photo_key)] <- 1
+db_cleaned$photo_key[is.na(db_cleaned$photo_key)] <- 0
+# Video - has (1), does not have (0)
+db_cleaned$video_status[!is.na(db_cleaned$video_status)] <- 1
+db_cleaned$video_status[is.na(db_cleaned$video_status)] <- 0
+# Spotlight - false (0), true (1)
+db_cleaned$spotlight <- as.numeric(as.character(factor(db_cleaned$spotlight, labels = c(0, 1))))
+# Staff pick - false (0), true (1)
+db_cleaned$staff_pick <- as.numeric(as.character(factor(db_cleaned$staff_pick, labels = c(0, 1))))
+# state - failed (0), successful (1)
+db_cleaned$state <- as.numeric(as.character(factor(db_cleaned$state, labels = c(0, 1))))
+```
+
+##Determine Outcome Variable Methodology
+After examining the discrepencies between state: "successful" and goal_met, we select $state to produce our outcome variable.
+```{r}
+#Isolate relevant variables into df_success
+df_success <- db_cleaned[, c("pledged", "state", "goal")]
+
+#Add $goal_met
+df_success$goal_met <- df_success$pledged >= df_success$goal
+
+#Compare $state to $goal_met
+df_success$successful <- df_success$state == 1
+(mean(df_success$goal_met == df_success$successful))
+
+#Explore the errors
+df_errors <- df_success[df_success$goal_met != df_success$successful,]
+df_errors
+
+#Clean Up
+rm(df_success)
+rm(df_errors)
+```
+
+
+#### Data Dictionary
+```{r}
+# Create data frame
+dictionary <- as.data.frame(matrix(0, nrow = 125, ncol = 4, 
+                                   dimnames = list(NULL, c("name", "description", "type", "values"))))
+
+# Populate the first column of the data frame with the variable names from db
+dictionary$name <- c(colnames(db), 
+                     "social_media", 
+                     "description_length", 
+                     "campaign_duration", 
+                     "avg_contribution", 
+                     "percent_funded")
+
+# Manually write in definitions in the second column of the data frame
+#dictionary$description <- c()
+
+# Populate the third column with the variable type
+dictionary$type <- c(sapply(db, class), 
+                     typeof(db_cleaned$social_media), 
+                     typeof(db_cleaned$description_length), 
+                     typeof(db_cleaned$campaign_duration), 
+                     typeof(db_cleaned$avg_contribution), 
+                     typeof(db_cleaned$percent_funded))
+  
+# Popoulate the fourth column with possible values and meanings
+#dictionary$values <- c(sapply(db, range), 
+#                       range(db_cleaned$social_media), 
+#                       range(db_cleaned$description_length), 
+#                       range(db_cleaned$campaign_duration), 
+#                       range(db_cleaned$avg_contribution), 
+#                       range(db_cleaned$percent_funded))
+```
+
+
+#### Exploratory Analysis
+
+## Explore $project_id
+```{r}
+
+```
+
+## Explore $backers_count
+Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
+```{r}
+#Check for NA
+anyNA(db_cleaned$backers_count)
+
+#Box Plot
+boxplot(db_cleaned$backers_count)
+
+#Linear Model
+#significant
+lm_backers_count <- glm(percent_funded ~ backers_count, data = db_cleaned)
+summary(lm_backers_count)
+
+#Logit; Filtered for visual 
+df_backers_count_filtered <- db_cleaned %>%
+  filter(backers_count < 100)
+
+logit_backers_count <- glm(state ~ backers_count, 
+                           data = df_backers_count_filtered, 
+                           family = binomial(link='logit'))
+
+df_backers_count_filtered %>%
+  ggplot() +
+  theme_minimal() + 
+  ggtitle("$backers_count Logistic Model") +
+  geom_point(aes(x=backers_count, y=state), colour = "black") +
+  geom_point(aes(x=backers_count, y=logit_backers_count$fitted.values), colour = "red")
+
+#Clean Up
+rm(lm_backers_count)
+rm(df_backers_count_filtered)
+rm(logit_backers_count)
+```
+
+## Explore category variables
+$category_parent_id, $category_slug
+- Some categories never fail in this dataset (only considered if n > 50):
+  - design/product design (1098 projects)
+  - film & video/documentary (2203 projects)
+  - film & video/shorts (3513 projects)
+  - games/tabletop games (1064 projects)
+- Most successful parent categories (only considered if n > 100):
+  - 7 1,725 projects 81.2% successful
+  - 11 12,088 projects 65.2% successful
+  - 14 14,637 projects 59.2% successful
+- Least successful parent categories (only considered if n > 100):
+  - 18 8,726 projects 39.7% successful
+  - 16 1,638 projects 46.2% successful
+  - 12 4,125 projects 46.9% successful
+```{r}
+# By main category
+# 15 unique categories
+db_cleaned %>%
+  group_by(category_parent_id) %>%
+  summarise(n(), 
+            success_rate = round(mean(state)*100, 2), 
+            mean(goal, na.rm = TRUE), 
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(percent_funded, na.rm = TRUE), 
+            mean(backers_count), 
+            min(backers_count), 
+            median(backers_count), 
+            max(backers_count), 
+            mean(avg_contribution, na.rm = TRUE), 
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(category_parent_id)
+
+# By subcategory
+# 140 unique category/subcategory combinations
+db_cleaned %>%
+  group_by(as.character(category_slug)) %>%
+  summarise(n(), 
+            success_rate = round(mean(state)*100, 2), 
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(percent_funded, na.rm = TRUE), 
+            mean(backers_count), 
+            min(backers_count), 
+            median(backers_count), 
+            max(backers_count), 
+            mean(avg_contribution, na.rm = TRUE), 
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(category_slug)
+
+#Logit
+db_cleaned$category_parent_id <- as.factor(db_cleaned$category_parent_id)
+logit_category <- glm(state ~ category_parent_id, data = db_cleaned, family = binomial(link='logit'))
+summary(logit_category)
+```
+
+## Explore $comments_count
+```{r}
+
+```
+
+## Explore $converted_pledged_amount
+Validate hypothesis that $converted_pledged_amount = $fx_rate * $pledged
+```{r}
+# fx_rate is the exchange rate to USD
+for (i in length(db_cleaned$converted_pledged_amount)) {
+  if (db_cleaned$converted_pledged_amount[i] == db_cleaned$fx_rate[i]*db_cleaned$pledged[i]) {
+    i = i + 1
+  } else {
+    print("FALSE")
+  }
+  print("COMPLETE")
+}
+```
+
+## Explore date-time variables
+```{r}
+# created_at, deadline, failed_at, launched_at, state_changed_at, successful_at, updated_at
+ticktock <- data.frame(db_cleaned$created_at, 
+                       db_cleaned$deadline, 
+                       db_cleaned$failed_at, 
+                       db_cleaned$launched_at, 
+                       db_cleaned$state_changed_at, 
+                       db_cleaned$successful_at)
+
+# variables to assess differences
+ticktock <- mutate(ticktock, 
+                   deadline_failed = db_cleaned.deadline - db_cleaned.failed_at,
+                   deadline_success = db_cleaned.deadline - db_cleaned.successful_at,
+                   deadline_state = db_cleaned.deadline - db_cleaned.state_changed_at)
+
+# an average of 2-20 minutes difference btween deadline and failed_at, successful_at, state_changed_at
+mean(ticktock$deadline_failed, na.rm = TRUE)
+mean(ticktock$deadline_success, na.rm = TRUE)
+mean(ticktock$deadline_state)
+
+# drop from data frame
+db_cleaned <- dplyr::select(db_cleaned, -failed_at, -successful_at, -state_changed_at)
+
+# Clean up
+rm(ticktock)
+
+# Add variables for more meaningful time grouping
+db_cleaned$date_launched <- as.Date(db_cleaned$launched_at, format="%m/%d/%Y")
+db_cleaned$mo_yr_launched <- format(db_cleaned$date_launched, format="%Y-%m")
+db_cleaned$year_launched <- format(db_cleaned$date_launched, format="%Y")
+```
+
+## Explore $disable_communication
+This is not a user initiated setting, rather an effect of a project being suspended.
+```{r}
+df_filtered_disable_communicaiotn <- db %>%
+  filter(disable_communication == "True")
+
+df_filtered_state_suspended <- db %>%
+  filter(state == "suspended")
+
+rownames(df_filtered_disable_communicaiotn) == rownames(df_filtered_state_suspended)
+
+#Clean Up
+rm(df_filtered_disable_communicaiotn)
+rm(df_filtered_state_suspended)
+```
+
+## Explore $goal
+Goal is likely a good predicter
+```{r}
+db_cleaned$goal %>%
+  summary()
+
+#Linear Model
+#not significant
+lm_goal <- glm(percent_funded ~ goal, data = db_cleaned)
+summary(lm_goal)
+
+#Logit; Filtered for visual 
+df_filtered_by_goal <- db_cleaned %>%
+  filter(goal < 200000)
+
+logit_goal <- glm(state ~ goal, data = df_filtered_by_goal, family=binomial(link='logit'))
+
+df_filtered_by_goal %>%
+  ggplot() +
+  theme_minimal() + 
+  ggtitle("$backers_count Logistic Model") +
+  geom_point(aes(x=goal, y=state), colour = "black") +
+  geom_point(aes(x=goal, y=logit_goal$fitted.values), colour = "red")
+
+# Group into deciles and look as level
+```
+
+## Explore $launched_at
+Number of projects increased exponentially 2009 - 2012, seems to be increasing more gradually after 2012.
+Have partial data for December 2013.
+```{r}
+db_cleaned %>%
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  group_by(mo_yr_launched)  %>% 
+  summarise(n(), 
+            success_rate = round(mean(state)*100, 2),
+            mean(percent_funded, na.rm = TRUE), 
+            mean (avg_contribution, na.rm = TRUE))
+
+db_cleaned %>%
+  ggplot() + 
+  geom_histogram(aes(x=year_launched), stat = "count")
+```
+
+## Explore location variables
+$country, $location_displayable_name, $location_name, $location_state, $location_type
+```{r}
+
+```
+
+## Explore $photo_key
+```{r}
+
+```
+
+## Explore $pledged
+```{r}
+# Group into deciles and look as levels
+```
+
+## Explore profile variables
+$profile_blurb, $profile_state
+```{r}
+```
+
+
+## Explore $rewards
+```{r}
+
+```
+
+## Explore $spotlight
+```{r}
+
+```
+
+## Explore $staff_pick
+```{r}
+
+```
+
+## Explore $state
+```{r}
+db_cleaned %>%
+  group_by(state) %>%
+  summarise(n(),
+            mean(percent_funded, na.rm = TRUE), 
+            mean(avg_contribution, na.rm = TRUE), 
+            mean(goal, na.rm = TRUE),
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(backers_count), 
+            min(backers_count), 
+            median(backers_count), 
+            max(backers_count), 
+            mean(avg_contribution, na.rm = TRUE), 
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(state)
+```
+
+## Explore $updates_count
+```{r}
+
+```
+
+## Explore $video_status
+ T test shows having a video to statistically significantly impact the success of the project. 
+```{r}
+t.test(state ~ video_status, data = db_cleaned)
+```
+
+## Explore social media connectedness variables
+$facebook, $twitter, $youtube $social_media
+```{r}
+
+```
+
+## Explore $description_length
+```{r}
+```
+
+## Explore $campaign_duration
+```{r}
+#Linear Model
+#not significant
+lm_length <- glm(percent_funded ~ campaign_duration, data = db_cleaned)
+summary(lm_goal)
+
+#Logit
+#significant
+logit_length <- glm(state ~ campaign_duration, data = db_cleaned, family=binomial(link='logit'))
+summary(logit_length)
+
+db_cleaned %>%
+  ggplot() +
+  theme_minimal() + 
+  ggtitle("$campaign_length Logistic Model") +
+  geom_point(aes(x=campaign_duration, y=state), colour = "black") +
+  geom_point(aes(x=campaign_duration, y=logit_length$fitted.values), colour = "red")
+```
+
+## Explore $avg_contribution
+```{r}
+#Chck for NA
+anyNA(db_cleaned$avg_contribution)
+
+# Box Plot
+boxplot(db_cleaned$avg_contribution)
+
+# Apparently normal distribution
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_histogram(aes(x = avg_contribution))
+```
+
+## Explore $percent_funded
+```{r}
+# Check for NA
+anyNA(db_cleaned$percent_funded)
+
+# Box Plot
+# Large outliers
+boxplot(db_cleaned$percent_funded)
+
+# Non-normal distribution
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_histogram(aes(x = percent_funded))
+```
+
+
+#### Text Analysis
+## Create a Wordcloud
+```{r}
+# Create pdf file for wordcloud
+#pdf("Wordcloud.pdf")
+
+#exclude <- c("will", "can", "get", "make", "project", "also", "kickstarter", "one")
+
+# Create wordcloud of text
+# Transform to lowercase, remove punctuation, remove stop words
+# Options to transform words using stem words
+#MDR_Corpus <- VCorpus(VectorSource(db$full_description))
+#MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#pal <- brewer.pal(9, "BuPu")
+#wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE, 
+
+#          main = paste("ALL"))
+#dev.off()
+```
+
+## Wordclouds To Identify Yearly Trends
+```{r}
+# Create pdf file for wordclouds
+#pdf("Wordcloud_byYear.pdf")
+
+#Year <- as.numeric(as.character(format(db_cleaned$date_launched, format="%Y")))
+#YearUnique <- sort(unique(Year))
+
+# Create wordcloud of text by year
+#for(i in 1:length(Year)) {
+#  ind <- which(Year == YearUnique[i])
+#  if(length(ind) >= 10) {
+#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#    pal <- brewer.pal(9, "BuPu")
+#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+#              colors = pal, ordered.color = FALSE, 
+#              main = paste(YearUnique[i]))
+#  }
+#}
+```
+
+## Wordclouds for Funded/Not Funded
+```{r}
+# Create pdf file for wordclouds
+#pdf("Wordcloud_byFunded.pdf")
+
+#Success <- db_cleaned$state
+#SuccessUnique <- sort(unique(Success))
+
+# Create wordcloud of text by year
+#for(i in 1:length(Success)){
+#  ind <- which(Success == SuccessUnique[i])
+#  if(length(ind) >= 10) {
+#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#    pal <- brewer.pal(9, "BuPu")
+#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+#              colors = pal, ordered.color = FALSE, 
+#              main = paste(SuccessUnique[i]))
+#  }
+#}
+```
+
+### Topic Modeling and Automated Topic Discovery
+## Latent Dirichlet Topic Models
+```{r}
+# Document processing
+#processed <- textProcessor(db_cleaned$full_description, metadata = db_cleaned)
+#out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 10)
+#docs <- out$documents
+#vocab <- out$vocab
+#meta <- out$meta
+
+#plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
+
+# LDA model building
+# K is the number of topics to be discovered
+#poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, 
+#                              prevalence =~ Year, max.em.its = 10, 
+#                              data = out$meta, runs = 20, seed = 8458159, 
+#                              init.type = "LDA")
+```
+
+
+#### Variable Selection
+
+## LASSO
+```{r}
+
+```
+
+
+#### Machine Learning
+
+## Split into train and test data sets
+```{r}
+
+```
+
+## Decision Tree and/or Random Forest
+```{r}
+
+```
