@@ -1,5 +1,5 @@
-mlks.db
-train.csv
+*.db
+*.csv
 .DS_Store
 *.pyc
 .RData
