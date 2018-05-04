@@ -13,7 +13,6 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r include=FALSE}
 #Load packages
 library(DBI)
@@ -35,24 +34,16 @@ library(RColorBrewer)
 library(dplyr)
 ```
 
-
-#### SQL to R
+```{r include=FALSE}
 ## Reads entire SQL database into R as a data frame called db.
-```{r}
 mydb <- dbConnect(SQLite(), dbname = "../Data/mlks_parsed copy.db")
 db <- dbGetQuery(conn = mydb, 'SELECT * FROM Projects')
 creators <- dbGetQuery(conn = mydb, 'SELECT * FROM Creators')
 dbDisconnect(mydb)
-```
-
-
-#### Data Cleaning
-
-## Merge db and creators
-```{r}
 db <- left_join(db, creators, by = "creator_id")
 rm(creators)
 ```
+
 
 ## Examine db
 Understand available explanatory variables and make the data friendly for analysis.

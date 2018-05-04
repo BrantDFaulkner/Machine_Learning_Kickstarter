@@ -220,24 +220,6 @@ div.tocify {
 </div>
 
 
-<div id="sql-to-r" class="section level4">
-<h4>SQL to R</h4>
-</div>
-<div id="reads-entire-sql-database-into-r-as-a-data-frame-called-db." class="section level2">
-<h2>Reads entire SQL database into R as a data frame called db.</h2>
-<pre class="r"><code>mydb &lt;- dbConnect(SQLite(), dbname = &quot;../Data/mlks_parsed copy.db&quot;)
-db &lt;- dbGetQuery(conn = mydb, 'SELECT * FROM Projects')
-creators &lt;- dbGetQuery(conn = mydb, 'SELECT * FROM Creators')
-dbDisconnect(mydb)</code></pre>
-<div id="data-cleaning" class="section level4">
-<h4>Data Cleaning</h4>
-</div>
-</div>
-<div id="merge-db-and-creators" class="section level2">
-<h2>Merge db and creators</h2>
-<pre class="r"><code>db &lt;- left_join(db, creators, by = &quot;creator_id&quot;)
-rm(creators)</code></pre>
-</div>
 <div id="examine-db" class="section level2">
 <h2>Examine db</h2>
 <p>Understand available explanatory variables and make the data friendly for analysis.</p>
