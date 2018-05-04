@@ -1,21 +1,21 @@
 ---
-title: "Kickstarter"
+title: "MKickstarter"
 output: 
-  html_document:
+  rmarkdown::html_document:
+    theme: lumen
     toc: true
-    toc_depth: 2
     toc_float: true
-    theme: simplex
+#    theme: simplex
     fig_caption: true
-    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#### Load packages
-```{r}
+
+```{r include=FALSE}
+#Load packages
 library(DBI)
 library(RSQLite)
 library(MASS)
@@ -43,7 +43,6 @@ mydb <- dbConnect(SQLite(), dbname = "../Data/mlks_parsed copy.db")
 db <- dbGetQuery(conn = mydb, 'SELECT * FROM Projects')
 creators <- dbGetQuery(conn = mydb, 'SELECT * FROM Creators')
 dbDisconnect(mydb)
-unlink("../Data/mlks_parsed copy.db")
 ```
 
 
