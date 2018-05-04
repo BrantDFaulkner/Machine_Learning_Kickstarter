@@ -1,12 +1,13 @@
 ---
-title: "MKickstarter"
+title: "ML Kickstarter"
 output: 
-  rmarkdown::html_document:
-    theme: lumen
+  html_document:
     toc: true
+    toc_depth: 2
     toc_float: true
-#    theme: simplex
+    theme: simplex
     fig_caption: true
+    number_sections: true
 ---
 
 ```{r setup, include=FALSE}
@@ -44,10 +45,9 @@ db <- left_join(db, creators, by = "creator_id")
 rm(creators)
 ```
 
+```{r include=FALSE}
+#Understand available explanatory variables and make the data friendly for analysis.
 
-## Examine db
-Understand available explanatory variables and make the data friendly for analysis.
-```{r}
 # 120 columns, 50,596 rows
 ncol(db)
 nrow(db)
@@ -60,10 +60,10 @@ db %>%
   geom_histogram(stat = "count")
 ```
 
-## Check redundant variables
-```{r}
+```{r include=FALSE}
+# Check variables with only one level
 # Returns 'COMPLETE' if two columns are exactly the same.
-#Returns 'FALSE', 'COMPLETE' if two columns are different.
+# Returns 'FALSE', 'COMPLETE' if two columns are different.
 redundant <- function(x, y) {
   i <- 1
   if(x[i] == y[i]) {
@@ -84,8 +84,8 @@ redundant(db$location_displayable_name, db$location_short_name)
 redundant(db$profile_id, db$profile_project_id)
 ```
 
-## Check variables with only one level
-```{r}
+```{r include=FALSE}
+# Check variables with only one level
 # Six variables with only one level; remove these in db_cleaned.
 for (j in 1:ncol(db)) {
   if (length(unique(db[[j]])) == 1) {
@@ -94,8 +94,9 @@ for (j in 1:ncol(db)) {
 }
 ```
 
-## Reformat variables
-```{r}
+```{r include=FALSE}
+# Reformat variables
+
 # Remove meaningless character strings
 db$project_id[] <- lapply(db$project_id, gsub, pattern = 'kkst', replacement = '')
 db[] <- lapply(db, gsub, pattern = '&#39;', replacement = '')
@@ -142,8 +143,8 @@ db$video_id <- as.integer(db$video_id)
 db$video_width <- as.integer(db$video_width)
 ```
 
-## Make db_cleaned
 ```{r}
+## Make db_cleaned
 # Remove unecessary variables
 db_cleaned <- dplyr::select(db, 
                      -category_id, -category_color, -category_position, -category_name, 
@@ -215,73 +216,175 @@ db_cleaned$staff_pick <- as.numeric(as.character(factor(db_cleaned$staff_pick, l
 db_cleaned$state <- as.numeric(as.character(factor(db_cleaned$state, labels = c(0, 1))))
 ```
 
-##Determine Outcome Variable Methodology
-After examining the discrepencies between state: "successful" and goal_met, we select $state to produce our outcome variable.
 ```{r}
+#Determine Outcome Variable Methodology
+#After examining the discrepencies between state: "successful" and goal_met, we select $state to produce our outcome variable.
+
 #Isolate relevant variables into df_success
-df_success <- db_cleaned[, c("pledged", "state", "goal")]
+#df_success <- db_cleaned[, c("pledged", "state", "goal")]
 
 #Add $goal_met
-df_success$goal_met <- df_success$pledged >= df_success$goal
+#df_success$goal_met <- df_success$pledged >= df_success$goal
 
 #Compare $state to $goal_met
-df_success$successful <- df_success$state == 1
-(mean(df_success$goal_met == df_success$successful))
+#df_success$successful <- df_success$state == 1
+#(mean(df_success$goal_met == df_success$successful))
 
 #Explore the errors
-df_errors <- df_success[df_success$goal_met != df_success$successful,]
-df_errors
+#df_errors <- df_success[df_success$goal_met != df_success$successful,]
+#df_errors
 
 #Clean Up
-rm(df_success)
-rm(df_errors)
+#rm(df_success)
+#rm(df_errors)
 ```
 
 
-#### Data Dictionary
-```{r}
-# Create data frame
-dictionary <- as.data.frame(matrix(0, nrow = 125, ncol = 4, 
-                                   dimnames = list(NULL, c("name", "description", "type", "values"))))
+# About the Project
 
-# Populate the first column of the data frame with the variable names from db
-dictionary$name <- c(colnames(db), 
-                     "social_media", 
-                     "description_length", 
-                     "campaign_duration", 
-                     "avg_contribution", 
-                     "percent_funded")
+The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
 
-# Manually write in definitions in the second column of the data frame
-#dictionary$description <- c()
+Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovations on a public platform.  
 
-# Populate the third column with the variable type
-dictionary$type <- c(sapply(db, class), 
-                     typeof(db_cleaned$social_media), 
-                     typeof(db_cleaned$description_length), 
-                     typeof(db_cleaned$campaign_duration), 
-                     typeof(db_cleaned$avg_contribution), 
-                     typeof(db_cleaned$percent_funded))
-  
-# Popoulate the fourth column with possible values and meanings
-#dictionary$values <- c(sapply(db, range), 
-#                       range(db_cleaned$social_media), 
-#                       range(db_cleaned$description_length), 
-#                       range(db_cleaned$campaign_duration), 
-#                       range(db_cleaned$avg_contribution), 
-#                       range(db_cleaned$percent_funded))
-```
+Our project would entail exploration of datasets regarding Indiegogo and Kickstarter projects., The primary project goal would be to construct a model that predicts crowdfunding success. In order to accomplish this, additional data sources may be required regarding consumer demand, small businesses, etc. From that predictive model, we seek to make recommendations (1) to entrepreneurs, regarding when and how to employ crowdfunding for project financing, and (2) to the lending services and venture capital industries, regarding how their business models should react.  
 
+From this independent study course, I expect to:
+* Use multiple publicly-available crowdfunding datasets and R programming,
+* Clean data and conduct primary research to obtain additional variables (as needed), 
+* Apply statistical analysis techniques to describe trends,
+* Construct a model to predict crowdfunding success, and
+* Prescribe best practices for entrepreneurs to leverage crowdfunding.
 
-#### Exploratory Analysis
+# Key Findings
 
-## Explore $project_id
+Kickstarter is AWESOME!
+
+# Machine Learning Models
+
+## Decision Tree and/or Random Forest
 ```{r}
 
 ```
 
-## Explore $backers_count
+## LASSO
+```{r}
+
+```
+
+## Variable Selection
+```{r}
+
+```
+
+# Text Analysis
+
+## Create a Wordcloud
+```{r}
+# Create pdf file for wordcloud
+#pdf("Wordcloud.pdf")
+
+#exclude <- c("will", "can", "get", "make", "project", "also", "kickstarter", "one")
+
+# Create wordcloud of text
+# Transform to lowercase, remove punctuation, remove stop words
+# Options to transform words using stem words
+#MDR_Corpus <- VCorpus(VectorSource(db$full_description))
+#MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#pal <- brewer.pal(9, "BuPu")
+#wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE, 
+
+#          main = paste("ALL"))
+#dev.off()
+```
+
+## Wordclouds To Identify Yearly Trends
+```{r}
+# Create pdf file for wordclouds
+#pdf("Wordcloud_byYear.pdf")
+
+#Year <- as.numeric(as.character(format(db_cleaned$date_launched, format="%Y")))
+#YearUnique <- sort(unique(Year))
+
+# Create wordcloud of text by year
+#for(i in 1:length(Year)) {
+#  ind <- which(Year == YearUnique[i])
+#  if(length(ind) >= 10) {
+#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#    pal <- brewer.pal(9, "BuPu")
+#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+#              colors = pal, ordered.color = FALSE, 
+#              main = paste(YearUnique[i]))
+#  }
+#}
+```
+
+## Wordclouds for Funded/Not Funded
+```{r}
+# Create pdf file for wordclouds
+#pdf("Wordcloud_byFunded.pdf")
+
+#Success <- db_cleaned$state
+#SuccessUnique <- sort(unique(Success))
+
+# Create wordcloud of text by year
+#for(i in 1:length(Success)){
+#  ind <- which(Success == SuccessUnique[i])
+#  if(length(ind) >= 10) {
+#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+#    pal <- brewer.pal(9, "BuPu")
+#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+#              colors = pal, ordered.color = FALSE, 
+#              main = paste(SuccessUnique[i]))
+#  }
+#}
+```
+
+## Topic Modeling and Automated Topic Discovery
+## Latent Dirichlet Topic Models
+```{r}
+# Document processing
+#processed <- textProcessor(db_cleaned$full_description, metadata = db_cleaned)
+#out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 10)
+#docs <- out$documents
+#vocab <- out$vocab
+#meta <- out$meta
+
+#plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
+
+# LDA model building
+# K is the number of topics to be discovered
+#poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, 
+#                              prevalence =~ Year, max.em.its = 10, 
+#                              data = out$meta, runs = 20, seed = 8458159, 
+#                              init.type = "LDA")
+```
+
+
+
+
+
+
+
+# Exploratory Analysis
+
+## $backers_count
+
 Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
+
 ```{r}
 #Check for NA
 anyNA(db_cleaned$backers_count)
@@ -621,120 +724,38 @@ db_cleaned %>%
   geom_histogram(aes(x = percent_funded))
 ```
 
+# Understanding the Data
 
-#### Text Analysis
-## Create a Wordcloud
+## Data Dictionary
 ```{r}
-# Create pdf file for wordcloud
-#pdf("Wordcloud.pdf")
+# Create data frame
+dictionary <- as.data.frame(matrix(0, nrow = 125, ncol = 4, 
+                                   dimnames = list(NULL, c("name", "description", "type", "values"))))
 
-#exclude <- c("will", "can", "get", "make", "project", "also", "kickstarter", "one")
+# Populate the first column of the data frame with the variable names from db
+dictionary$name <- c(colnames(db), 
+                     "social_media", 
+                     "description_length", 
+                     "campaign_duration", 
+                     "avg_contribution", 
+                     "percent_funded")
 
-# Create wordcloud of text
-# Transform to lowercase, remove punctuation, remove stop words
-# Options to transform words using stem words
-#MDR_Corpus <- VCorpus(VectorSource(db$full_description))
-#MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-#MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-#MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-#MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-#MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
-#pal <- brewer.pal(9, "BuPu")
-#wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE, 
+# Manually write in definitions in the second column of the data frame
+#dictionary$description <- c()
 
-#          main = paste("ALL"))
-#dev.off()
-```
-
-## Wordclouds To Identify Yearly Trends
-```{r}
-# Create pdf file for wordclouds
-#pdf("Wordcloud_byYear.pdf")
-
-#Year <- as.numeric(as.character(format(db_cleaned$date_launched, format="%Y")))
-#YearUnique <- sort(unique(Year))
-
-# Create wordcloud of text by year
-#for(i in 1:length(Year)) {
-#  ind <- which(Year == YearUnique[i])
-#  if(length(ind) >= 10) {
-#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
-#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
-#    pal <- brewer.pal(9, "BuPu")
-#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
-#              colors = pal, ordered.color = FALSE, 
-#              main = paste(YearUnique[i]))
-#  }
-#}
-```
-
-## Wordclouds for Funded/Not Funded
-```{r}
-# Create pdf file for wordclouds
-#pdf("Wordcloud_byFunded.pdf")
-
-#Success <- db_cleaned$state
-#SuccessUnique <- sort(unique(Success))
-
-# Create wordcloud of text by year
-#for(i in 1:length(Success)){
-#  ind <- which(Success == SuccessUnique[i])
-#  if(length(ind) >= 10) {
-#    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
-#    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-#    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-#    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-#    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-#    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
-#    pal <- brewer.pal(9, "BuPu")
-#    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
-#              colors = pal, ordered.color = FALSE, 
-#              main = paste(SuccessUnique[i]))
-#  }
-#}
-```
-
-### Topic Modeling and Automated Topic Discovery
-## Latent Dirichlet Topic Models
-```{r}
-# Document processing
-#processed <- textProcessor(db_cleaned$full_description, metadata = db_cleaned)
-#out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 10)
-#docs <- out$documents
-#vocab <- out$vocab
-#meta <- out$meta
-
-#plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
-
-# LDA model building
-# K is the number of topics to be discovered
-#poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, 
-#                              prevalence =~ Year, max.em.its = 10, 
-#                              data = out$meta, runs = 20, seed = 8458159, 
-#                              init.type = "LDA")
-```
-
-
-#### Variable Selection
-
-## LASSO
-```{r}
-
-```
-
-
-#### Machine Learning
-
-## Split into train and test data sets
-```{r}
-
-```
-
-## Decision Tree and/or Random Forest
-```{r}
-
+# Populate the third column with the variable type
+dictionary$type <- c(sapply(db, class), 
+                     typeof(db_cleaned$social_media), 
+                     typeof(db_cleaned$description_length), 
+                     typeof(db_cleaned$campaign_duration), 
+                     typeof(db_cleaned$avg_contribution), 
+                     typeof(db_cleaned$percent_funded))
+  
+# Popoulate the fourth column with possible values and meanings
+#dictionary$values <- c(sapply(db, range), 
+#                       range(db_cleaned$social_media), 
+#                       range(db_cleaned$description_length), 
+#                       range(db_cleaned$campaign_duration), 
+#                       range(db_cleaned$avg_contribution), 
+#                       range(db_cleaned$percent_funded))
 ```
