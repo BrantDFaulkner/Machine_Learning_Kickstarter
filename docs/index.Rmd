@@ -33,6 +33,9 @@ library(RColorBrewer)
 #library(stm)
 #library(quanteda)
 library(dplyr)
+library(rpart)
+library(rpart.plot)
+#library(randomForest)
 ```
 
 ```{r include=FALSE}
@@ -143,7 +146,7 @@ db$video_id <- as.integer(db$video_id)
 db$video_width <- as.integer(db$video_width)
 ```
 
-```{r}
+```{r include=FALSE}
 ## Make db_cleaned
 # Remove unecessary variables
 db_cleaned <- dplyr::select(db, 
@@ -214,6 +217,17 @@ db_cleaned$spotlight <- as.numeric(as.character(factor(db_cleaned$spotlight, lab
 db_cleaned$staff_pick <- as.numeric(as.character(factor(db_cleaned$staff_pick, labels = c(0, 1))))
 # state - failed (0), successful (1)
 db_cleaned$state <- as.numeric(as.character(factor(db_cleaned$state, labels = c(0, 1))))
+
+
+#Brant Adding things
+db_cleaned$US = as.numeric(db_cleaned$country == "US")
+db_cleaned$funded <- db_cleaned$state
+db_cleaned$facebook <- as.numeric(!is.na(db_cleaned$facebook)) 
+db_cleaned$twitter <- as.numeric(!is.na(db_cleaned$twitter)) 
+db_cleaned$youtube <- as.numeric(!is.na(db_cleaned$youtube))
+db_cleaned$social_media_count <- db_cleaned$facebook + db_cleaned$twitter + db_cleaned$youtube
+db_cleaned$description_length <- replace_na(db_cleaned$description_length, 0)
+
 ```
 
 ```{r}
@@ -261,15 +275,88 @@ Kickstarter is AWESOME!
 
 # Machine Learning Models
 
-## Decision Tree and/or Random Forest
-```{r}
-
-```
-
 ## LASSO
 ```{r}
+set.seed(1)
+n <- nrow(db_cleaned)
+shuffled_df <- db_cleaned[sample(n), ]
+train_indices <- 1:round(0.8 * n)
+train <- shuffled_df[train_indices, ]
+test_indices <- (round(0.8 * n) + 1):n
+test <- shuffled_df[test_indices, ]
+
+
+
+train_x <- model.matrix(funded ~ 
+                    comments_count +
+                    goal +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    updates_count +
+                    video_status +
+                    description_length +
+                    # BROKEN campaign_duration +
+                    US +
+                    social_media_count, data = train)
+
+test_x <- model.matrix(funded ~ 
+                    comments_count +
+                    goal +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    updates_count +
+                    video_status +
+                    description_length +
+                    # BROKEN campaign_duration +
+                    US +
+                    social_media_count, data = test)
+
+
+train_y <- train$funded
+
+test_y <- test$funded
+
+cvfit <- cv.glmnet(x=train_x, y=train_y, alpha = 1)
+
+coef(cvfit, s = "lambda.min")
+
+mean(test_y)
+mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "response") >= .5))
 
 ```
+
+
+## Decision Tree and/or Random Forest
+```{r}
+set.seed(1)
+tree <- rpart(funded ~ 
+                comments_count +
+                    goal +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    updates_count +
+                    video_status +
+                    description_length +
+                    # BROKEN campaign_duration +
+                    US +
+                    social_media_count, data = train)
+
+summary(tree)
+prp(tree, extra = 1, box.palette = "auto")
+printcp(tree)
+plotcp(tree)
+index <- which.min(tree$cptable[ , "xerror"])
+tree_min <- tree$cptable[index, "CP"]
+
+pruned_tree <- prune(tree, cp = tree_min)
+prp(pruned_tree, extra = 1, box.palette = "auto")
+
+mean(test$funded)
+mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
+
+```
+
+
 
 ## Variable Selection
 ```{r}
@@ -373,12 +460,6 @@ Kickstarter is AWESOME!
 #                              init.type = "LDA")
 ```
 
-
-
-
-
-
-
 # Exploratory Analysis
 
 ## $backers_count
@@ -386,36 +467,24 @@ Kickstarter is AWESOME!
 Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
 
 ```{r}
-#Check for NA
-anyNA(db_cleaned$backers_count)
+db_cleaned <- db_cleaned %>% 
+  mutate(backers_count_20 = cut(backers_count, breaks = unique(quantile(backers_count, seq(0, 1, by = .05))), include.lowest = TRUE))
 
-#Box Plot
-boxplot(db_cleaned$backers_count)
-
-#Linear Model
-#significant
-lm_backers_count <- glm(percent_funded ~ backers_count, data = db_cleaned)
-summary(lm_backers_count)
-
-#Logit; Filtered for visual 
-df_backers_count_filtered <- db_cleaned %>%
-  filter(backers_count < 100)
-
-logit_backers_count <- glm(state ~ backers_count, 
-                           data = df_backers_count_filtered, 
+logit_backers_count_20 <- glm(funded ~ backers_count_20, 
+                           data = db_cleaned, 
                            family = binomial(link='logit'))
 
-df_backers_count_filtered %>%
-  ggplot() +
-  theme_minimal() + 
-  ggtitle("$backers_count Logistic Model") +
-  geom_point(aes(x=backers_count, y=state), colour = "black") +
-  geom_point(aes(x=backers_count, y=logit_backers_count$fitted.values), colour = "red")
+summary(logit_backers_count_20)
+
+db_cleaned %>% 
+  ggplot(aes(x = backers_count_20, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean") +
+  geom_point(aes(x=backers_count_20, y=logit_backers_count_20$fitted.values), colour = "red")
+  theme_minimal()
 
 #Clean Up
-rm(lm_backers_count)
-rm(df_backers_count_filtered)
-rm(logit_backers_count)
+rm(logit_backers_count_20)
+
 ```
 
 ## Explore category variables
@@ -594,14 +663,40 @@ db_cleaned %>%
 ```
 
 ## Explore location variables
-$country, $location_displayable_name, $location_name, $location_state, $location_type
+### $country
+The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects.  
+```{r}
+db_cleaned %>%
+  group_by(country) %>%
+    summarise(n(), mean(funded))
+
+lm <- lm(funded ~ US, data = db_cleaned)
+summary(lm)
+```
+
+### Other Location variables
+These would require a lot of cleaning, and might be valuable for making heat maps. However, they are not condusive to making a prediction.
 ```{r}
 
+db_cleaned %>%
+  group_by(location_name) %>%
+    summarise(n(), mean(funded))
+
+db_cleaned %>%
+  group_by(location_state) %>%
+    summarise(n(), mean(funded))
+
+db_cleaned %>%
+  group_by(location_type) %>%
+    summarise(n(), mean(funded))
 ```
 
 ## Explore $photo_key
+There are not enough zero values for prediction.
 ```{r}
-
+db_cleaned %>%
+  group_by(photo_key) %>%
+    summarise(n(), mean(funded))
 ```
 
 ## Explore $pledged
@@ -621,13 +716,21 @@ $profile_blurb, $profile_state
 ```
 
 ## Explore $spotlight
+Spotlight is an ex post facto variable that features funded projects.
+[Kickstarter Spotlight](https://www.kickstarter.com/spotlight)
 ```{r}
-
+db_cleaned %>%
+  group_by(spotlight) %>%
+    summarise(n(), mean(funded))
 ```
 
 ## Explore $staff_pick
+This flag denotes projectsthat have received the "Projects We Love" badge and get prominantly features on the website, newsletters, and blogs. Kickstarter staff clearly has a great eye for promossing projects and/or some strong marketing impact.
+[Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
 ```{r}
-
+db_cleaned %>%
+  group_by(staff_pick) %>%
+    summarise(n(), mean(funded))
 ```
 
 ## Explore $state
@@ -664,8 +767,45 @@ t.test(state ~ video_status, data = db_cleaned)
 ```
 
 ## Explore social media connectedness variables
-$facebook, $twitter, $youtube $social_media
+Social media shows an impact. Facebook seems to be the strongest and Youtube has a negative coefecient. Our hypothesis is that Facebook and Twitter may be used for promotion, while creators focusing on YouTube may over rely on their product content. Yet the most successfull creators have all three, which supports that YouTube is effective when paired with a comprehensive social media campaign.
+
 ```{r}
+#facebook
+db_cleaned %>%
+  group_by(facebook) %>%
+    summarise(n(), mean(funded))
+
+#twiter
+db_cleaned %>%
+  group_by(twitter) %>%
+    summarise(n(), mean(funded))
+#youtube
+db_cleaned %>%
+  group_by(youtube) %>%
+    summarise(n(), mean(funded))
+
+#social_media
+db_cleaned %>%
+  group_by(social_media) %>%
+    summarise(n(), mean(funded))
+
+lm <- lm(funded ~ social_media, data = db_cleaned)
+summary(lm)
+
+
+#social_media_count
+db_cleaned %>%
+  group_by(social_media_count) %>%
+    summarise(n(), mean(funded))
+
+lm <- lm(funded ~ social_media_count, data = db_cleaned)
+summary(lm)
+
+db_cleaned %>% 
+  ggplot(aes(x = social_media_count, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean") +
+  theme_minimal()
+
 
 ```
 

@@ -1,10 +1,12 @@
+# Machine Learning Kickstarter
 
--   [Hello World](#hello-world)
-    -   [World 1](#world-1)
+Independent Study
 
-<!-- README.md is generated from README.Rmd. Please edit that file -->
-Hello World
-===========
+Creators:
+* Brant Faulkner
+* Courtney Allen
 
-World 1
--------
+Supervised
+* Professor David Molitor
+
+Check out the [Project Report](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
