@@ -1,6 +1,11 @@
+<<<<<<< HEAD
 mlks.db
 train.csv
 projects_courtney.db
+=======
+*.db
+*.csv
+>>>>>>> e08e711f9d67e6ad63301ee63296b6a9c42953a2
 .DS_Store
 *.pyc
 .RData

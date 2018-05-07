@@ -1,0 +1,8 @@
+---
+title: "Key Findings"
+output: html_document
+---
+
+# Key Findings
+
+Kickstarter is AWESOME!

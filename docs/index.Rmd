@@ -1,0 +1,32 @@
+---
+title: "Machine Learning Kickstarter"
+author: "Brant Faulkner & Courtney Allen"
+output: 
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
+    theme: simplex
+    fig_caption: true
+    number_sections: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r child = 'sections/data_cleaning.Rmd'}
+
+```
+
+```{r child = 'sections/about_the_project.Rmd'}
+
+```
+
+```{r child = 'sections/key_findings.Rmd'}
+
+```
+
+```{r child = 'sections/machine_learning.Rmd'}
+
+```

@@ -1,0 +1,231 @@
+---
+title: "Data_Cleaning"
+output: html_document
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r include=FALSE}
+library(DBI)
+library(RSQLite)
+library(MASS)
+library(tidyverse)
+library(glmnet)
+library(tidytext)
+library(anytime)
+library(ggplot2)
+library(car)
+library(lubridate)
+library(tm)
+library(SnowballC)
+library(wordcloud)
+library(RColorBrewer)
+library(stm)
+library(quanteda)
+library(dplyr)
+library(rpart)
+library(rpart.plot)
+library(randomForest)
+```
+
+
+```{r include=FALSE}
+# Reads SQL database with two tables into R. Each SQL table becomes an R data frame, and they are merged as db.
+mydb <- dbConnect(SQLite(), dbname = "../../Data/mlks_parsed.db")
+db <- dbGetQuery(conn = mydb, 'SELECT * FROM Projects')
+creators <- dbGetQuery(conn = mydb, 'SELECT * FROM Creators')
+dbDisconnect(mydb)
+db <- left_join(db, creators, by = "creator_id")
+rm(creators)
+rm(mydb)
+```
+
+
+```{r include=FALSE}
+# Remove meaningless character strings
+db$project_id[] <- lapply(db$project_id, gsub, pattern = 'kkst', replacement = '')
+db[] <- lapply(db, gsub, pattern = '&#39;', replacement = '')
+db[] <- lapply(db, gsub, pattern = ' &amp; ', replacement = '&')
+db$category_slug[] <- lapply(db$category_slug, gsub, pattern = ' ', replacement = '_')
+```
+
+
+```{r include=FALSE}
+#SQL database imported all variables as character type; change non-character variables.
+
+db$project_id <- as.integer(db$project_id)
+db$backers_count <- as.integer(db$backers_count)
+db$canceled_at <- anytime(as.numeric(db$canceled_at))
+db$category_color <- as.integer(db$category_color)
+db$category_id <- as.integer(db$category_id)
+db$category_parent_id <- as.integer(db$category_parent_id)
+db$category_position <- as.integer(db$category_position)
+db$category_slug <- unlist(db$category_slug)
+db$comments_count <- as.integer(db$comments_count)
+db$converted_pledged_amount <- round(as.numeric(db$converted_pledged_amount), 2)
+db$created_at <- anytime(as.numeric(db$created_at))
+db$creator_id <- as.integer(db$creator_id)
+db$deadline <- anytime(as.numeric(db$deadline))
+db$failed_at <- anytime(as.numeric(db$failed_at))
+db$fx_rate <- round(as.numeric(db$fx_rate), 2)
+db$goal <- round(as.numeric(db$goal), 2)
+db$id <- as.integer(db$id)
+db$launched_at <- anytime(as.numeric(db$launched_at))
+db$location_id <- as.integer(db$location_id)
+db$pledged <- round(as.numeric(db$pledged), 2)
+db$potd_at <- anytime(as.numeric(db$potd_at))
+db$profile_background_image_attributes_id <- as.integer(db$profile_background_image_attributes_id)
+db$profile_background_image_opacity <- round(as.numeric(db$profile_background_image_opacity), 1)
+db$profile_feature_image_attributes_id <- as.integer(db$profile_feature_image_attributes_id)
+db$profile_id <- as.integer(db$profile_id)
+db$profile_blurb <- unlist(db$profile_blurb)
+db$profile_link_text_color <- as.integer(db$profile_link_text_color)
+db$profile_project_id <- as.integer(db$profile_project_id)
+db$profile_state_changed_at <- anytime(as.numeric(db$profile_state_changed_at))
+db$state_changed_at <- anytime(as.numeric(db$state_changed_at))
+db$static_usd_rate <- round(as.numeric(db$static_usd_rate), 2)
+db$successful_at <- anytime(as.numeric(db$successful_at))
+db$suspended_at <- anytime(as.numeric(db$suspended_at))
+db$updated_at <- anytime(as.numeric(db$updated_at))
+db$updates_count <- as.integer(db$updates_count)
+db$usd_pledged <- round(as.numeric(db$usd_pledged), 2)
+db$video_height <- as.integer(db$video_height)
+db$video_id <- as.integer(db$video_id)
+db$video_width <- as.integer(db$video_width)
+```
+
+
+```{r include=FALSE}
+#Make db_cleaned
+#Remove unecessary variables.
+
+db_cleaned <- dplyr::select(db, 
+                     -category_id, -category_color, -category_position, -category_name, 
+                     -category_urls_web_discover, 
+                     -creator_avatar_medium, -creator_avatar_small, -creator_avatar_thumb, 
+                     -creator_chosen_currency, 
+                     -creator_id, -creator_slug, 
+                     -creator_is_registered, 
+                     -creator_urls_api_user, -creator_urls_web_user, 
+                     -currency_symbol, -currency_trailing_code, -current_currency, 
+                     -disable_communication, 
+                     -id, 
+                     -is_starrable, 
+                     -items, 
+                     -livestreams, 
+                     -location_country, -location_id, -location_is_root, 
+                     -location_localized_name, -location_short_name, -location_slug,
+                     -location_urls_api_nearby_projects, -location_urls_web_discover, -location_urls_web_location,
+                     -photo_1024x576, -photo_1536x864, 
+                     -photo_ed, -photo_full, -photo_little, -photo_med, -photo_small, -photo_thumb, 
+                     -profile_background_color, -profile_background_image_attributes_id, 
+                     -profile_background_image_attributes_image_urls_baseball_card, 
+                     -profile_background_image_attributes_image_urls_default, -profile_background_image_opacity, 
+                     -profile_feature_image_attributes_id,
+                     -profile_feature_image_attributes_image_urls_baseball_card, 
+                     -profile_feature_image_attributes_image_urls_default,
+                     -profile_id, -profile_project_id, 
+                     -profile_link_background_color, -profile_link_text, -profile_link_text_color, 
+                     -profile_link_url, -profile_name, 
+                     -profile_should_show_feature_image_section, -profile_show_feature_image, 
+                     -profile_text_color, 
+                     -slug, 
+                     -suspended_at, -canceled_at, -potd_at, -profile_state_changed_at, 
+                     -urls_api_comments, -urls_api_project, -urls_api_updates, 
+                     -urls_web_project, -urls_web_project_short, -urls_web_rewards, -urls_web_updates, 
+                     -usd_pledged, -usd_type, -video, 
+                     -video_base, -video_frame, -video_height, -video_high, -video_hls, -video_id, -video_width)
+rm(db)
+```
+
+```{r include=FALSE}
+#Remove projects with result anamolies
+#We consider only failed or successful project for binomial classification problem.
+#We remove four projects in which the actual outcome is not accurately reflected by $state.
+
+#Consider only failed or successful projects for binomial classification
+state_list <- c("failed", "successful")
+db_cleaned <- db_cleaned[db_cleaned$state %in% state_list,]
+rm(state_list)
+
+#Isolate relevant variables into df_success
+df_success <- db_cleaned[, c("pledged", "state", "goal")]
+
+#Add $goal_met
+df_success$goal_met <- df_success$pledged >= df_success$goal
+
+#Compare $state to $goal_met
+df_success$successful <- df_success$state == "successful"
+(mean(df_success$goal_met == df_success$successful))
+
+#Explore the errors
+df_errors <- df_success[df_success$goal_met != df_success$successful,]
+df_errors
+
+#Consider only correctly classified projects
+errors_to_remove <- which(df_success$goal_met != df_success$successful)
+db_cleaned <- db_cleaned[-errors_to_remove,]
+
+#Clean Up
+rm(df_success)
+rm(df_errors)
+rm(errors_to_remove)
+```
+
+
+```{r include=FALSE}
+##Create df_engr
+df_engr <- data.frame(funded = as.numeric(db_cleaned$state == "successful"))
+
+#Direct Ports
+df_engr$comments_count <- db_cleaned$comments_count
+df_engr$goal <- db_cleaned$goal
+df_engr$updates_count <- db_cleaned$updates_count
+
+
+#Campaign Stats
+df_engr$campaign_duration = round((db_cleaned$deadline - db_cleaned$launched_at), 2)
+df_engr$avg_contribution = round((db_cleaned$pledged/db_cleaned$backers_count), 2)
+df_engr$percent_funded = round((db_cleaned$pledged/db_cleaned$goal*100), 2)
+
+df_engr$spotlight <- as.numeric(as.character(factor(db_cleaned$spotlight, labels = c(0, 1))))
+df_engr$staff_pick <- as.numeric(as.character(factor(db_cleaned$staff_pick, labels = c(0, 1))))
+df_engr$usa = as.numeric(db_cleaned$country == "US")
+
+
+#Media
+df_engr$social_media <- as.numeric(as.character(factor(
+                       (!is.na(db_cleaned$facebook) & !is.na(db_cleaned$twitter) & !is.na(db_cleaned$youtube)), labels = c(0, 1))))
+df_engr$facebook <- as.numeric(!is.na(db_cleaned$facebook)) 
+df_engr$twitter <- as.numeric(!is.na(db_cleaned$twitter)) 
+df_engr$youtube <- as.numeric(!is.na(db_cleaned$youtube))
+df_engr$social_media_count <- df_engr$facebook + df_engr$twitter + df_engr$youtube
+
+df_engr$photo_key[!is.na(db_cleaned$photo_key)] <- 1
+df_engr$photo_key[is.na(db_cleaned$photo_key)] <- 0
+
+df_engr$video_status[!is.na(db_cleaned$video_status)] <- 1
+df_engr$video_status[is.na(db_cleaned$video_status)] <- 0
+
+#Text Analysis
+df_engr$description_length <- nchar(db_cleaned$full_description)
+df_engr$description_length[is.na(db_cleaned$description_length)] <- 0
+
+#Dates
+df_engr$date_launched <- as.Date(db_cleaned$launched_at, format="%m/%d/%Y")
+df_engr$mo_yr_launched <- format(db_cleaned$date_launched, format="%Y-%m")
+df_engr$year_launched <- format(db_cleaned$date_launched, format="%Y")
+```
+
+
+
+```{r include=FALSE}
+##Export csv
+#write.csv(db_cleaned, file = "db_cleaned.csv")
+```
+
+
+

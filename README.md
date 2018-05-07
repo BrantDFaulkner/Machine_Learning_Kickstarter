@@ -1,4 +1,12 @@
-# Machine_Learning_Kickstarter
-Predicting the success of Kickstarter projects, applying machine learning to custom data sets
+# Machine Learning Kickstarter
 
-Courtney was here
+Independent Study
+
+Creators:
+* Brant Faulkner
+* Courtney Allen
+
+Supervised
+* Professor David Molitor
+
+Check out the [Project Report](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
