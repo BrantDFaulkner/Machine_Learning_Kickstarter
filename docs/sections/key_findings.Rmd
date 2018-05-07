@@ -6,3 +6,5 @@ output: html_document
 # Key Findings
 
 Kickstarter is AWESOME!
+
+I can use Github!
