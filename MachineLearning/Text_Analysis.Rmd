@@ -1,0 +1,330 @@
+---
+title: "R Text Analysis"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Set Up and Import Data
+```{r}
+library(dplyr)
+#install.packages("tidytext")
+library(tidytext)
+library(anytime)
+library(ggplot2)
+library(car)
+library(lubridate)
+#install.packages("DBI")
+library(DBI)
+#install.packages("RSQLite")
+library(RSQLite)
+
+setwd("~/Documents/Academic/UIUC MBA/Spring 2018/Independent Study/")
+mydb <- dbConnect(RSQLite::SQLite(),"mlks_parsed.db")
+db <- dbGetQuery(mydb, 'SELECT * from Projects')
+dbDisconnect(mydb)
+unlink("~/mlks_parsed.db")
+```
+
+## Clean Data
+```{r}
+# If statement to check redundant variables
+i <- 1
+if(db$profile_id[i] == db$profile_project_id[i]) {
+  i = i + 1
+  } else {
+    print("FALSE")
+    i - i + 1
+  }
+i <- 1
+if(db$blurb[i] == db$profile_blurb[i]) {
+  i = i + 1
+  } else {
+    print("FALSE")
+    i - i + 1
+  }
+i <- 1
+if(db$currency[i] == db$current_currency[i]) {
+  i = i + 1
+  } else {
+    print("FALSE")
+    i - i + 1
+  }
+i <- 1
+if(db$pledged[i] == db$usd_pledged[i]) {
+  i = i + 1
+  } else {
+    print("FALSE")
+    i - i + 1
+  }
+
+# Check variables with only one level
+VariableProfile <- c()
+for (m in names(db)) {
+  VariableProfile <- c(colnames(db), length(unique(db[[m]])))
+}
+
+unique(db$currency_trailing_code)
+unique(db$creator_is_registered)
+unique(db$livestreams)
+unique(db$static_usd_rate)
+unique(db$fx_rate)
+unique(db$items)
+unique(db$usd_type)
+unique(db$currency_symbol)
+unique(db$country)
+
+# Format variables
+# Date and time
+db$deadline <- anytime(as.numeric(db$deadline))
+db$profile_state_changed_at <- anytime(as.numeric(db$profile_state_changed_at))
+db$state_changed_at <- anytime(as.numeric(db$state_changed_at))
+db$successful_at <- anytime(as.numeric(db$successful_at))
+db$updated_at <- anytime(as.numeric(db$updated_at))
+db$launched_at <- anytime(as.numeric(db$launched_at))
+db$created_at <- anytime(as.numeric(db$created_at))
+db$failed_at <- anytime(as.numeric(db$failed_at))
+db$canceled_at <- anytime(as.numeric(db$canceled_at))
+db$potd_at <- anytime(as.numeric(db$potd_at))
+db$suspended_at <- anytime(as.numeric(db$suspended_at))
+
+# Remove unwanted or redundant variables
+db_cleaned <- select(db, 
+                     -profile_project_id, 
+                     -static_usd_rate, 
+                     -urls_api_project, 
+                     -fx_rate, 
+                     -urls_api_updates, 
+                     -urls_api_comments, 
+                     -currency_trailing_code, 
+                     -urls_web_project, 
+                     -profile_blurb, 
+                     -items, 
+                     -current_currency, 
+                     -creator_is_registered, 
+                     -livestreams, 
+                     -photo_little, 
+                     -category_urls_web_discover, 
+                     -profile_feature_image_attributes_image_urls_default, 
+                     -location_urls_web_discover, 
+                     -location_urls_web_location, 
+                     -usd_pledged, 
+                     -usd_type, 
+                     -photo_small, 
+                     -photo_1024x576, 
+                     -profile_feature_image_attributes_image_urls_baseball_card, 
+                     -creator_avatar_thumb, 
+                     -creator_urls_web_user, 
+                     -photo_thumb, 
+                     -currency_symbol, 
+                     -photo_ed, 
+                     -urls_web_updates, 
+                     -country, 
+                     -photo_med, 
+                     -photo_full, 
+                     -photo_1536x864, 
+                     -creator_avatar_medium, 
+                     -creator_avatar_small, 
+                     -creator_urls_api_user, 
+                     -photo_key)
+db_cleaned <- mutate(db_cleaned, 
+                     hype_length = round(((launched_at - created_at)/(24)), 2), # convert from min to hours
+                     campaign_length = round((deadline - launched_at)*24, 2), # convert from days to hours
+                     percent_funded = round((as.numeric(pledged)/as.numeric(goal)*100), 2), 
+                     avg_contribution = round((as.numeric(pledged)/as.numeric(backers_count)), 2))
+```
+
+## Exploratory Analysis
+Conclusions:
+- Need outlier detection and exclusion for all outcome variables (percent_funded, backers_count, avg_contribution).
+- Non-normal distribution of percent_funded.
+- Goal amount doesn't seem important to percent_funded.
+- Apparently normal distribution of avg_contribution, but skewed due to outliers.
+- More projects were launched over time, but the 
+- Some categories never fail in this dataset (only considered if n > 5):
+  - design/product design (76 projects)
+  - film & video/documentary (607 projects)
+  - film & video/shorts (938 projects)
+  - games/tabletop games (41 projects)
+- Most successful high-level categories (only considered if n > 10):
+  - Design 145 projects 82% successful
+  - Film & Video 2,688 projects 75% successful
+  - Music 3,128 projects 66% successful
+```{r}
+boxplot(db_cleaned$percent_funded)
+boxplot(as.numeric(db_cleaned$backers_count))
+boxplot(db_cleaned$avg_contribution)
+
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_histogram(aes(x = percent_funded))
+
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_point(aes(x = campaign_length, y = percent_funded))
+
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_point(aes(x = hype_length, y = percent_funded))
+
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_point(aes(x = goal, y = percent_funded))
+
+db_cleaned %>% 
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  ggplot() + 
+  geom_point(aes(x = category_parent_id, y = percent_funded))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_histogram(aes(x = avg_contribution))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_point(aes(x = id, y = avg_contribution))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_point(aes(x = campaign_length, y = avg_contribution))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_point(aes(x = hype_length, y = avg_contribution))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_point(aes(x = goal, y = avg_contribution))
+
+db_cleaned %>% 
+  filter(!is.na(avg_contribution) & avg_contribution <= 250) %>%
+  ggplot() + 
+  geom_point(aes(x = category_id, y = avg_contribution))
+
+db_cleaned %>%
+  filter(!is.na(launched_at)) %>%
+  ggplot() +
+  geom_histogram(aes(x = launched_at))
+
+db_cleaned %>%
+  filter(!is.na(percent_funded) & percent_funded <= 400) %>%
+  group_by(month = floor_date(as.Date(launched_at), "month"))  %>% 
+  summarise(n(), 
+            mean(percent_funded, na.rm = TRUE), 
+            mean (avg_contribution, na.rm = TRUE))
+
+db_cleaned %>%
+  filter(percent_funded <= 400 & avg_contribution <= 250) %>%
+  group_by(state) %>%
+  summarise(n(),
+            mean(percent_funded, na.rm = TRUE), 
+            mean(avg_contribution, na.rm = TRUE), 
+            mean(goal, na.rm = TRUE),
+            sd(percent_funded, na.rm = TRUE),
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(backers_count), 
+            sd(backers_count),
+            min(backers_count), 
+            median(backers_count), 
+            max(backers_count), 
+            mean(avg_contribution, na.rm = TRUE), 
+            sd(avg_contribution, na.rm = TRUE),
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(state)
+
+db_cleaned %>%
+  filter(state == "failed" | state == "successful") %>%
+  filter(percent_funded <= 400 & avg_contribution <= 250) %>%
+  group_by(category_slug) %>%
+  summarise(n(), 
+            successe_rate = round(length(which(state == "successful"))/n()*100, 2), 
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(percent_funded, na.rm = TRUE), 
+            sd(percent_funded, na.rm = TRUE),
+            mean(as.numeric(backers_count)), 
+            sd(as.numeric(backers_count)),
+            min(as.numeric(backers_count)), 
+            median(as.numeric(backers_count)), 
+            max(as.numeric(backers_count)), 
+            mean(avg_contribution, na.rm = TRUE), 
+            sd(avg_contribution, na.rm = TRUE),
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(category_slug)
+
+db_cleaned %>%
+  filter(state == "failed" | state == "successful") %>%
+  filter(percent_funded <= 400 & avg_contribution <= 250) %>%
+  group_by(category_parent_id) %>%
+  summarise(n(), 
+            success_rate = round(length(which(state == "successful"))/n()*100, 2), 
+            mean(as.numeric(goal), na.rm = TRUE), 
+            min(percent_funded, na.rm = TRUE), 
+            median(percent_funded, na.rm = TRUE), 
+            max(percent_funded, na.rm = TRUE),
+            mean(percent_funded, na.rm = TRUE), 
+            sd(percent_funded, na.rm = TRUE),
+            mean(as.numeric(backers_count)), 
+            sd(as.numeric(backers_count)),
+            min(as.numeric(backers_count)), 
+            median(as.numeric(backers_count)), 
+            max(as.numeric(backers_count)), 
+            mean(avg_contribution, na.rm = TRUE), 
+            sd(avg_contribution, na.rm = TRUE),
+            min(avg_contribution, na.rm = TRUE), 
+            median(avg_contribution, na.rm = TRUE), 
+            max(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(category_parent_id)
+```
+
+## Tidy text for words in project blurbs
+```{r}
+db_cleaned_tidy <- select(db_cleaned,
+                          id, name, creator_id, location_short_name, 
+                          category_slug, category_parent_id, 
+                          created_at, launched_at, deadline, hype_length, campaign_length, 
+                          spotlight, staff_pick, 
+                          state, backers_count, pledged, goal, 
+                          avg_contribution, percent_funded, 
+                          blurb) %>% 
+  unnest_tokens(word, blurb) %>% 
+  anti_join(stop_words)
+View(db_cleaned_tidy)
+
+db_cleaned_tidy %>% 
+  count(word, sort = TRUE) %>% 
+  filter(word != "39") %>% 
+  filter(word != "amp") %>% 
+  filter(n >= 200) %>% 
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+```
+
+## Predictive Analysis
+```{r}
+m <- lm (avg_contribution ~ percent_funded, data = db_cleaned)
+summary(m)
+```

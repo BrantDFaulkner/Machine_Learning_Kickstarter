@@ -33,7 +33,7 @@ class kscrape:
             print(url) #visual cl progress
             campaign = urllib.request.urlopen(url).read()
             ksql.update_campaign(db_connection, campaign, project["id"])
-            time.sleep(10)
+            time.sleep(5)
         db_connection.close()
 
     def crawl_campaigns(self):
@@ -70,5 +70,5 @@ class kscrape:
 
 
 
-kscrape().crawl_campaigns()
+kscrape().get_campaign()
 # kscrape().crawl_campaigns()

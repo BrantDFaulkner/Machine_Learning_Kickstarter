@@ -1,5 +1,6 @@
 mlks.db
 train.csv
+projects_courtney.db
 .DS_Store
 *.pyc
 .RData
