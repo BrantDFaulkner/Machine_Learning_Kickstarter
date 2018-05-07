@@ -1,0 +1,24 @@
+---
+title: "About the Project"
+output: html_document
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# About the Project
+
+The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
+
+Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovations on a public platform.  
+
+Our project would entail exploration of datasets regarding Indiegogo and Kickstarter projects., The primary project goal would be to construct a model that predicts crowdfunding success. In order to accomplish this, additional data sources may be required regarding consumer demand, small businesses, etc. From that predictive model, we seek to make recommendations (1) to entrepreneurs, regarding when and how to employ crowdfunding for project financing, and (2) to the lending services and venture capital industries, regarding how their business models should react.  
+
+From this independent study course, I expect to:
+* Use multiple publicly-available crowdfunding datasets and R programming,
+* Clean data and conduct primary research to obtain additional variables (as needed), 
+* Apply statistical analysis techniques to describe trends,
+* Construct a model to predict crowdfunding success, and
+* Prescribe best practices for entrepreneurs to leverage crowdfunding.

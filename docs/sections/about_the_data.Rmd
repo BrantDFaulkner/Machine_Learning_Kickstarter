@@ -1,0 +1,58 @@
+---
+title: "About The Data"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r include=FALSE}
+#Data Cleaning
+#Understand available explanatory variables and make the data friendly for analysis.
+##db dimensions and column names
+
+#120 columns, 50,596 rows
+ncol(db)
+nrow(db)
+names(db)
+```
+
+```{r  include=FALSE}
+##Check variables with only one level
+#Six variables with only one level; we will remove these in db_cleaned.
+
+for (j in 1:ncol(db)) {
+  if (length(unique(db[[j]])) == 1) {
+    print(colnames(db)[j])
+  }
+}
+```
+
+
+
+```{r}
+##Data Dictionaries
+#Create data frames
+dictionary_db <- as.data.frame(matrix(0, nrow = 120, ncol = 4, 
+                                      dimnames = list(NULL, c("name", "description", "type", "values"))))
+
+dictionary_db_cleaned <- as.data.frame(matrix(0, nrow = 49, ncol = 4, 
+                                              dimnames = list(NULL, c("name", "description", "type", "values"))))
+
+#Populate first columns of the data frames with the variable names from db and db_cleaned
+dictionary_db$name <- c(colnames(db))
+dictionary_db_cleaned$name <- c(colnames(db_cleaned))
+
+#Manually write in definitions in the second column of the data frame
+#dictionary_db$description <- c()
+#dictionary_db_cleaned$description <- c()
+
+#Populate the third column with the variable type
+dictionary_db$type <- c(sapply(db, class))
+dictionary_db_cleaned$type <- c(sapply(db_cleaned, class))
+  
+#Popoulate the fourth column with possible values and meanings
+#dictionary_db$values <- c(sapply(db, range))
+#dictionary_db_cleaned$values <- c(sapply(db_cleaned, range))
+```

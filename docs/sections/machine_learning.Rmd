@@ -1,0 +1,89 @@
+---
+title: "Machine_Learning_V1"
+output: html_document
+---
+
+```{r include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Machine Learning Models
+
+## LASSO
+```{r}
+set.seed(1)
+n <- nrow(df_engr)
+shuffled_df <- df_engr[sample(n), ]
+train_indices <- 1:round(0.8 * n)
+train <- shuffled_df[train_indices, ]
+test_indices <- (round(0.8 * n) + 1):n
+test <- shuffled_df[test_indices, ]
+rm(shuffled_df); rm(n); rm(test_indices); rm(train_indices);
+
+train_y <- train$funded
+train_x <- model.matrix(funded ~ 
+                    #comments_count +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    #updates_count +
+                    #video_status +
+                    #description_length +
+                    # BROKEN campaign_duration +
+                    #usa +
+                    social_media_count +
+                    goal, data = train)
+
+
+test_y <- test$funded
+test_x <- model.matrix(funded ~ 
+                    #comments_count +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    #updates_count +
+                    #video_status +
+                    #description_length +
+                    # BROKEN campaign_duration +
+                    #usa +
+                    social_media_count +
+                    goal, data = test)
+
+cvfit <- cv.glmnet(x=train_x, y=train_y, alpha = 1)
+
+coef(cvfit, s = "lambda.min")
+
+
+mean(test_y)
+mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "response") >= .5))
+
+```
+
+
+## Decision Tree and/or Random Forest
+```{r}
+set.seed(1)
+tree <- rpart(funded ~ 
+                comments_count +
+                    goal +
+                    #Staf pick mightbe unfair variable
+                    #staff_pick +
+                    updates_count +
+                    video_status +
+                    #description_length +
+                    # BROKEN campaign_duration +
+                    usa +
+                    social_media_count, data = train)
+
+summary(tree)
+prp(tree, extra = 1, box.palette = "auto")
+printcp(tree)
+plotcp(tree)
+index <- which.min(tree$cptable[ , "xerror"])
+tree_min <- tree$cptable[index, "CP"]
+
+pruned_tree <- prune(tree, cp = tree_min)
+prp(pruned_tree, extra = 1, box.palette = "auto")
+
+mean(test$funded)
+mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
+
+```

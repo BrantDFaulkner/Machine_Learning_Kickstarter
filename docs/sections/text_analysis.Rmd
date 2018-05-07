@@ -1,0 +1,110 @@
+---
+title: "Untitled"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#Text Analysis
+
+##Create a Wordcloud
+
+```{r}
+# Create pdf file for wordcloud
+pdf("Wordcloud.pdf")
+
+exclude <- c("will", "can", "get", "make", "project", "also", "kickstarter", "one")
+
+# Create wordcloud of text
+# Transform to lowercase, remove punctuation, remove stop words
+# Options to transform words using stem words
+MDR_Corpus <- VCorpus(VectorSource(db$full_description))
+MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+#MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+pal <- brewer.pal(9, "BuPu")
+wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE, 
+          main = paste("ALL"))
+dev.off()
+```
+
+##Wordclouds To Identify Yearly Trends
+
+```{r}
+# Create pdf file for wordclouds
+pdf("Wordcloud_byYear.pdf")
+
+Year <- as.numeric(as.character(format(db_cleaned$date_launched, format="%Y")))
+YearUnique <- sort(unique(Year))
+
+# Create wordcloud of text by year
+for(i in 1:length(Year)) {
+  ind <- which(Year == YearUnique[i])
+  if(length(ind) >= 10) {
+    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+    pal <- brewer.pal(9, "BuPu")
+    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+              colors = pal, ordered.color = FALSE, 
+              main = paste(YearUnique[i]))
+  }
+}
+```
+
+##Wordclouds for Funded/Not Funded
+
+```{r}
+# Create pdf file for wordclouds
+pdf("Wordcloud_byFunded.pdf")
+
+Success <- db_cleaned$state
+SuccessUnique <- sort(unique(Success))
+
+# Create wordcloud of text by year
+for(i in 1:length(Success)){
+  ind <- which(Success == SuccessUnique[i])
+  if(length(ind) >= 10) {
+    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
+    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
+    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
+    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
+    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
+    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+    pal <- brewer.pal(9, "BuPu")
+    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
+              colors = pal, ordered.color = FALSE, 
+              main = paste(SuccessUnique[i]))
+  }
+}
+```
+
+
+#Topic Modeling and Automated Topic Discovery
+
+##Latent Dirichlet Topic Models
+
+```{r}
+# Document processing
+processed <- textProcessor(db_cleaned$full_description, metadata = db_cleaned)
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 10)
+docs <- out$documents
+vocab <- out$vocab
+meta <- out$meta
+
+plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
+
+# LDA model building
+# K is the number of topics to be discovered
+poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, 
+                              prevalence =~ Year, max.em.its = 10, 
+                              data = out$meta, runs = 20, seed = 8458159, 
+                              init.type = "LDA")
+```
