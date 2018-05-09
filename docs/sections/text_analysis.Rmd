@@ -9,102 +9,376 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Text Analysis
 
-##Create a Wordcloud
+The variable `full_description` contains the complete project description from kickstarter. Unstructured data, such as this text variable, require more cleaning and transformation to be useful, but can potentially be a source of rich information. Our application of text analysis had three primary motives:
+  1. Examine word frequency with word counts and wordclouds
+  2. Contruct topic models
+  3. Binary calssification to predict project funding status
 
-```{r}
-# Create pdf file for wordcloud
-pdf("Wordcloud.pdf")
+##Examine Word Frequency
+We began by transforming the strings of text in `full_description` into a data frame with one word per row. We then removed English stop words, common words that carry little semantic meaning and are thus immaterial to analyses (e.g., "and", "the", "of"). Finally, we determined word counts for:
+* the entire dataset,
+* only successful projects, and
+* only failed projects.
 
-exclude <- c("will", "can", "get", "make", "project", "also", "kickstarter", "one")
-
-# Create wordcloud of text
-# Transform to lowercase, remove punctuation, remove stop words
-# Options to transform words using stem words
-MDR_Corpus <- VCorpus(VectorSource(db$full_description))
-MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-#MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
-pal <- brewer.pal(9, "BuPu")
-wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE, 
-          main = paste("ALL"))
-dev.off()
+```{r include=FALSE}
+library(tidytext)
+library(tidyr)
+library(scales)
 ```
 
-##Wordclouds To Identify Yearly Trends
+```{r}
+# Most frequently used words in descriptions, overall
+fd_text_tidy <- data_frame(id = db_cleaned$project_id, text = db_cleaned$full_description) %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words) %>%
+  count(word, sort = TRUE)
+
+fd_text_tidy %>%
+  filter(n > 25000) %>%
+  mutate(word = reorder(word, n)) %>%
+  ggplot(aes(word, n)) +
+  geom_col() +
+  xlab(NULL) +
+  coord_flip()
+
+# Most frequently used words in successful descriptions
+success_fd_text <- filter(db_cleaned, state == "successful")
+success_fd_text <- data_frame(id = success_fd_text$project_id, text = success_fd_text$full_description)
+success_fd_text_tidy <- success_fd_text %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+#  count(word, sort = TRUE)
+
+# Most frequently used words in failed descriptions
+fail_fd_text <- filter(db_cleaned, state == "failed")
+fail_fd_text <- data_frame(id = fail_fd_text$project_id, text = fail_fd_text$full_description)
+fail_fd_text_tidy <- fail_fd_text %>%
+  unnest_tokens(word, text) %>%
+  anti_join(stop_words)
+#  count(word, sort = TRUE)
+```
+
+Next, we examined the correlation between word proportions of successful and failed project descriptions. Word proportion represents the percentage of time that a given word is used out of the total number of words in the document. In this case, the documents are the collection of all successful project descriptions and all failed project descriptions.
+
+We observed, both visually and in terms of Pearson's correlation coefficient, that the terms used in successful and failed project descriptions were very similar.
 
 ```{r}
-# Create pdf file for wordclouds
-pdf("Wordcloud_byYear.pdf")
+# Where is there word overlap between successful and failed projects?
+frequency <- bind_rows(mutate(success_fd_text_tidy, funded = "successful"),
+                       mutate(fail_fd_text_tidy, funded = "failed")) %>% 
+  count(funded, word) %>%
+  group_by(funded) %>%
+  mutate(proportion = n/sum(n)) %>% 
+  select(-n) %>% 
+  spread(funded, proportion) %>% 
+  gather(funded, proportion, `successful`)
 
-Year <- as.numeric(as.character(format(db_cleaned$date_launched, format="%Y")))
+ggplot(frequency, aes(x = proportion, y = `failed`, color = abs(`failed` - proportion))) +
+  geom_abline(color = "gray40", lty = 2) +
+  geom_jitter(alpha = 0.5, size = 1.5, width = 0.1, height = 0.1) +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 0.5) +
+  scale_x_log10(labels = percent_format()) +
+  scale_y_log10(labels = percent_format()) +
+  scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
+  facet_wrap(~funded, ncol = 2) +
+  theme(legend.position="none") +
+  labs(y = "failed", x = "successful")
+
+cor.test(data = frequency[frequency$funded == "successful",], ~ proportion + `failed`)
+```
+
+```{r include=FALSE}
+rm(success_fd_text, fail_fd_text, frequency, fd_text_tidy)
+```
+
+Another way to visualize word frequency is by constructing wordclouds, which scale the size of text of a word to match its frequency in the document relative to other words' frequencies. We constructed a wordcloud for the descriptions from the entire dataset. We were not surprised to see that "project", "kickstarter", and "goal" were among the most frequent terms used.
+
+```{r}
+# Create a corpus
+# Transform text to lowercase, remove punctuation, remove stop words
+description_corpus <- VCorpus(VectorSource(db_cleaned$full_description))
+description_corpus <- tm_map(description_corpus, content_transformer(tolower))
+description_corpus <- tm_map(description_corpus, removePunctuation)
+description_corpus <- tm_map(description_corpus, PlainTextDocument)
+description_corpus <- tm_map(description_corpus, removeWords, stopwords('english'))
+
+pal <- brewer.pal(9, "BuPu")
+wordcloud(description_corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE)
+```
+
+Wordclouds can be a useful way to visually observe differences in word variety and frequency between different groups of documents. Although they cannot be used in subsequent modeling, they are a tool for understanding unstructured text data and formulating hypotheses.
+
+Therefore, we grouped our dataset into documents 
+* by year to identify trends over time, and
+* by `funded` to identify differences between successful and failed projects.
+
+Prior to generating the wordclouds, we also created a custom set of stop words to weed out common terms in our dataset that could mask points of distinction between documents.
+
+In the wordclouds by year, we see that music was initially the most prevalent in 2009, but film began to emerge as the predominant category 2010-2011. In 2012-2013, games appear as the biggest category. These wordclouds also give us a hint regarding the variety of projects. From 2009-2011, the wordclouds become larger and word frequency is less concentrated around the same terms. Abruptly in 2012, the projects seems to become less disparate, but in 2013 variety increases again. This suggests that the degree of project variety on kickstarter may be cyclical; this seems logical as artists and entrepreneurs in the same field turn to kickstarter after hearing about colleagues' successes. However, more years of data are needed to verify the hypothesis of three-year periodicity.
+
+```{r}
+# Words to exclude
+exclude <- c("will", "can", "get", "make", "project", "time", "people", "kickstarter", "one", "goal", "money", "support", "help", "new", "like", "just", "first", "also", "like", "still", "really", "already", "ive", "weve", "dont", "well", "want", "need", "around", "include", "including", "two", "four", "three", "last", "thats", "youll", "currently", "others", "extra", "without", "within", "ever", "days", "months", "2012", "cant", "second", "100", "wanted", "fund", "funding", "able", "additional")
+
+# Initialize year variables for `for` loop
+Year <- as.numeric(as.character(format(db_cleaned$launched_at, format="%Y")))
 YearUnique <- sort(unique(Year))
 
-# Create wordcloud of text by year
+# Create corpora and wordclouds by year
 for(i in 1:length(Year)) {
   ind <- which(Year == YearUnique[i])
   if(length(ind) >= 10) {
-    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
-    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+    description_corpus <- VCorpus(VectorSource(db_cleaned$full_description[ind]))
+    description_corpus <- tm_map(description_corpus, content_transformer(tolower))
+    description_corpus <- tm_map(description_corpus, removePunctuation)
+    description_corpus <- tm_map(description_corpus, PlainTextDocument)
+    description_corpus <- tm_map(description_corpus, removeWords, c(exclude, stopwords('english')))
+    
+    print(YearUnique[i])
     pal <- brewer.pal(9, "BuPu")
-    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
-              colors = pal, ordered.color = FALSE, 
-              main = paste(YearUnique[i]))
+    wordcloud(description_corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE)
   }
 }
 ```
 
-##Wordclouds for Funded/Not Funded
+In the wordclouds by funding status, we observed a high degree of similarity in both terms and frequency between successful and failed projects. Books seemed more likely to fail due to the higher prevalence of "book" in the failed wordcloud. There also seemed to be more variety in the successful wordcloud, perhaps indicating richer project descriptions. However, it seems that high world frequency may not be the best delineator of successful versus failed projects.
 
 ```{r}
-# Create pdf file for wordclouds
-pdf("Wordcloud_byFunded.pdf")
-
+# Initialize success variables for `for` loop
 Success <- db_cleaned$state
 SuccessUnique <- sort(unique(Success))
 
-# Create wordcloud of text by year
+# Create corpora and wordclouds by success
 for(i in 1:length(Success)){
   ind <- which(Success == SuccessUnique[i])
   if(length(ind) >= 10) {
-    MDR_Corpus <- VCorpus(VectorSource(db$full_description[ind]))
-    MDR_Corpus <- tm_map(MDR_Corpus, content_transformer(tolower))
-    MDR_Corpus <- tm_map(MDR_Corpus, removePunctuation)
-    MDR_Corpus <- tm_map(MDR_Corpus, PlainTextDocument)
-    MDR_Corpus <- tm_map(MDR_Corpus, removeWords, c(exclude, stopwords('english')))
-    #MDR_Corpus=tm_map(MDR_Corpus, stemDocument)
+    description_corpus <- VCorpus(VectorSource(db_cleaned$full_description[ind]))
+    description_corpus <- tm_map(description_corpus, content_transformer(tolower))
+    description_corpus <- tm_map(description_corpus, removePunctuation)
+    description_corpus <- tm_map(description_corpus, PlainTextDocument)
+    description_corpus <- tm_map(description_corpus, removeWords, c(exclude, stopwords('english')))
+    
+    print(SuccessUnique[i])
     pal <- brewer.pal(9, "BuPu")
-    wordcloud(MDR_Corpus, max.words = 100, random.order = FALSE, 
-              colors = pal, ordered.color = FALSE, 
-              main = paste(SuccessUnique[i]))
+    wordcloud(description_corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE)
   }
 }
 ```
 
+```{r include=FALSE}
+rm(description_corpus, exclude, i, ind, pal, Success, SuccessUnique, Year, YearUnique)
+```
 
-#Topic Modeling and Automated Topic Discovery
+Sometimes the best way to determine points of difference between two similar documents are the terms which are unique between the two documents, rather than the most frequent terms. For example, two books written by the same author would likely generate similar wordclouds, yet the unique characters and places in the books would enable us to detect which book is which.
 
-##Latent Dirichlet Topic Models
+To see if this might be the case in our collection of successful and failed projects, we examined the term frequency-inverse document frequency (tf-idf). tf looks for terms that are common; idf decreases the weight placed on commonly used terms in the collection and increases the weight placed on words that are not commonly used in the collection (i.e., common in a few documents). To remove nonsensical words from the analysis, we only considered words with a frequency of greater than 500, which is a reasonably low cutoff in a dataset with 700,000+ unique terms.
+
+The results of this analysis suggest that board games and film are likely to be successful (dice, unlocked, filmmaker(s), boards, filmmaking, premiere). However, although the games category overall had a high success rate, it appears that games involving war and violence were less likely to receive funding (weapon, battles, security, agent), as were online games (multiplayer, server, playable, modes, animations).
 
 ```{r}
+# Combine successful and failed documents in one data frame that considers document frequency and total frequency
+funded_words <- bind_rows(mutate(success_fd_text_tidy, funded = "successful"),
+                          mutate(fail_fd_text_tidy, funded = "failed")) %>%
+  count(funded, word, sort = TRUE) %>%
+  filter(n > 500) %>%
+  ungroup()
+
+total_words <- funded_words %>% 
+  group_by(funded) %>% 
+  summarize(total = sum(n))
+
+funded_words <- left_join(funded_words, total_words)
+
+# Compute tf-idf
+funded_words <- funded_words %>%
+  bind_tf_idf(word, funded, n) %>%
+  select(-total) %>%
+  arrange(desc(tf_idf))
+
+# Visualize
+funded_words %>%
+  arrange(desc(tf_idf)) %>%
+  mutate(word = factor(word, levels = rev(unique(word)))) %>% 
+  group_by(funded) %>% 
+  top_n(20) %>% 
+  ungroup %>%
+  ggplot(aes(word, tf_idf, fill = funded)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = NULL, y = "tf-idf") +
+  facet_wrap(~funded, ncol = 2, scales = "free") +
+  coord_flip()
+```
+
+```{r include=FALSE}
+rm(fail_fd_text_tidy, success_fd_text_tidy, total_words, funded_words)
+```
+
+##Topic Modeling
+The analyses in the previous section have focused on the "bag-of-words" approach and word frequency as a method for natural language processing, the means by which computers make sense of human language. Although this is a common and useful approach, there are other useful ways to describe text data.
+
+One such method is topic modeling. Topic models assume that word or groups of words (called n-grams) which appear frequently together in a dataset are explained by underlying, unobserved groups(called topics). By examining word or n-gram overlap in the documents comprising a dataset, these topics can be detected. Although the computer cannot provide a semantic label for the topics, a human who is familiar with the dataset could examine the top words and determine a theme.
+
+##Latent Dirichlet allocation
+We chose Latent Dirichlet allocation (LDA) as our statistical model for topic detection. LDA examines text by word frequency and co-occurence in documents, which are individual project descriptions in our case. LDA assumes that each document covers a small number of topics and a small set of words it uses frequently, and so it is good at assigning documents to topics.
+
+To feed data into the model, we first processed the text to transform it to lowercase, remove punctuation, and remove stop words. In this section, we also performed word stemming, which groups words together that have the same root but different suffixes. This process helps ensure that words with the same semantic meaning, but different verb conjugations and the like, are assessed as the same word. As a result, our results show some incomplete word stems.
+
+After processing the text, we used it to generate documents, a vocabulary of terms in the dataset, metadata to construct the model. Consistent with our tf-idf analysis above, we only considered terms that appeared in at least 500 documents. We ran iterations of the LDA model specifying both 20 and 40 topics. The model did not reach convergence over 10 or 20 iterations; however, meaningful topics emerged with 20 iterations over 40 topics.
+
+```{r include=FALSE}
+library(stm)
+library(quanteda)
+library(igraph)
+```
+
+```{r include=FALSE}
 # Document processing
 processed <- textProcessor(db_cleaned$full_description, metadata = db_cleaned)
-out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 10)
+out <- prepDocuments(processed$documents, processed$vocab, processed$meta, lower.thresh = 500)
 docs <- out$documents
 vocab <- out$vocab
 meta <- out$meta
 
-plotRemoved(processed$documents, lower.thresh = seq(1, 200, by = 100))
-
 # LDA model building
 # K is the number of topics to be discovered
-poliblogSelect <- selectModel(out$documents, out$vocab, K = 20, 
-                              prevalence =~ Year, max.em.its = 10, 
-                              data = out$meta, runs = 20, seed = 8458159, 
-                              init.type = "LDA")
+poliblogPrevFit <- stm(documents = out$documents, vocab = out$vocab, K = 40, max.em.its = 20, 
+                       data = out$meta, init.type = "LDA")
 ```
+
+Visualizing the results of our topic model, we see some meaningful topics emerge, some centered on the mechanisms of the platform, and others identifying product categories or subcategories.
+
+For example, Topic 1 could be labeled Funding Requests and includes terms like "help", "money", "donate", "dollar", "goal", "buck", and "reach". Topic 7 is all about the rewards provided to backers if the project is successful: "pledge", "reward", "level", "backer", "goal", and "ship."
+
+On the other hand, Topic 6 seems to describe a certain subcategory of Film & Video and could be labeled Web Series with terms like "show", "series", "episode", "season", "pilot", "web", "anime", and "comedy." Topic 24 seems to describe a subcategory of Publishing and could be labeled Periodicals with terms like "issue", "magazine", "media", "interview", "article", "content", "journal", and "print."
+
+The theme of the projects is clear from some topics, although the type of project is not easily distinguished. For example, Topic 30 is about Fantasy, but could span several types of projects. The same is true of Topic 31 (Christianity), Topic 35 (Family), and Topic 39 (Outer Space).
+
+We also visualized the correlations between the 40 topics. The green nodes indicate topics, and the dashed lines represent relatedness between topics. The length of the dashed lines indicate the degree of similarity between two topics. Our topic models are highly related to one another, both in terms of the number of connections and the distance of connections.
+
+```{r}
+# Describe topics
+labelTopics(poliblogPrevFit, c(1:40))
+
+plot(poliblogPrevFit, type = "summary", xlim = c(0, .06), text.cex = 0.5)
+
+for (i in 1:40) {
+  cloud(poliblogPrevFit, topic = i, scale = c(3, 1))
+}
+
+# Topic correlations
+mod.out.corr <- topicCorr(poliblogPrevFit)
+plot(mod.out.corr)
+```
+
+In natural language processing, data often arrive with little metadata to categorize the text. Although we have project category in our dataset, we have no mechanism, aside from text mining, to determine project themes, which may be highly related to success or failure. Therefore, the results of the LDA model could be useful for classification of successful and unsuccessful projects.
+
+```{r include=FALSE}
+rm(docs, i, mod.out.corr, out, poliblogPrevFit, processed, vocab)
+```
+
+
+##Classification Model
+Our final task in text analysis was to propose a mechanism for predictive binary classification of project success or failure based on project description.
+
+To prepare to fit the model, we considered both unigrams (single terms) and bigrams and filtered for words that appear in at least 500 project descriptions. We calculated tf-idf and formatted the results in a document-term matrix. We also created train and test datasets based on an 80/20% split of the data.
+
+```{r include=FALSE}
+library(naivebayes)
+library(ranger)
+```
+
+```{r include=FALSE}
+# Create data frame for model
+db_text_model <- db_cleaned %>%
+  mutate(funded = state == "successful",
+         text = str_replace_all(full_description, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
+  select(project_id, funded, text)
+
+# Unnest words by unigram and bigrams
+# Count word frequency
+db_counts <- map_df(1:2,
+                      ~ unnest_tokens(db_text_model, word, text, 
+                                      token = "ngrams", n = .x)) %>%
+  anti_join(stop_words, by = "word") %>%
+  count(project_id, word, sort = TRUE)
+
+# Filter out n-grams that occur in fewer than 500 documents
+words_500 <- db_counts %>%
+  group_by(word) %>%
+  summarise(n = n()) %>% 
+  filter(n >= 500) %>%
+  select(word)
+
+# Calculate tf-idf
+# Format into document-term matrix
+db_dtm <- db_counts %>%
+  right_join(words_500, by = "word") %>%
+  bind_tf_idf(word, project_id, n) %>%
+  cast_dtm(project_id, word, tf_idf)
+
+meta <- tibble(project_id = as.numeric(dimnames(db_dtm)[[1]])) %>%
+  left_join(db_text_model[!duplicated(db_text_model$project_id), ], by = "project_id")
+
+# Separate data into train and test sets based on 80%/20% split
+# Create train and test datasets
+n <- dim(meta)[1]
+trainIndex <- sample.int(n, size = floor(0.8*n))
+db_text_train <- meta[trainIndex,]
+db_text_test <- meta[-trainIndex,]
+response_train <- meta$funded[trainIndex]
+```
+
+We tested Naïve Bayes and Random Forest classification models.
+```{r include=FALSE, eval=FALSE}
+trctrl <- trainControl(method = "none")
+
+# Naïve Bayes
+nb_model <- train(x = db_text_train,
+                 y = as.factor(response_train),
+                method = "naive_bayes",
+               trControl = trctrl,
+                  tuneGrid = data.frame(laplace = 0, usekernel = FALSE, adjust = FALSE))
+
+nb_pred <- predict(nb_model, newdata = db_text_test)
+
+nb_cm <- confusionMatrix(nb_pred, meta[-trainIndex, ]$funded)
+nb_cm
+
+# Random Forest
+rf_model <- train(x = db_text_train, 
+                  y = as.factor(response_train), 
+                  method = "ranger",
+                  trControl = trctrl,
+                  tuneGrid = data.frame(mtry = floor(sqrt(dim(db_text_train)[2])),
+                                        splitrule = "gini",
+                                        min.node.size = 1))
+
+rf_pred <- predict(rf_model, newdata = db_text_test)
+
+rf_cm <- confusionMatrix(rf_pred, meta[-trainIndex, ]$funded)
+rf_cm
+
+# Comparison
+model_results <- rbind(nb_cm$overall, rf_cm$overall) %>%
+  as.data.frame() %>%
+  mutate(model = c("Naive-Bayes", "Random forest"))
+
+model_results %>%
+  ggplot(aes(model, Accuracy)) +
+  geom_point() +
+  ylim(0, 1) +
+  geom_hline(yintercept = model_results$AccuracyNull[1], color = "red")
+```
+
+```{r include=FALSE, eval=FALSE}
+rm(db_text_model, db_counts, words_500, db_dtm, meta, n, trainIndex, db_text_train, db_text_train, response_train, nb_model, nb_pred, nb_cm, rf_model, rf_pred, rf_cm, model_results)
+```
+
+
+##Acknowledgements
+The following resources were invaluable to the completion of this section:
+* Text Mining with R: A Tidy Approach (Silge & Robinson, 2018; https://www.tidytextmining.com)
+* Class notes from Prof. Ujjal Mukherjee (University of Illinois at Urbana-Champgin, Gies College of Business)
+* stm: R Package for Structural Topic Models (Roberts, Stewart, & Tingley; https://cran.r-project.org/web/packages/stm/vignettes/stmVignette.pdf)
+* Binary text classification with Tidytext and caret (Hvitfeldt, 2018; https://www.hvitfeldt.me/2018/03/binary-text-classification-with-tidytext-and-caret/)
+* naivebayes package documentation (ftp://cran.r-project.org/pub/R/web/packages/naivebayes/naivebayes.pdf)
