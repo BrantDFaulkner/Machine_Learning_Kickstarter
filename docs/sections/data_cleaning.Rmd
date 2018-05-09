@@ -17,6 +17,8 @@ library(glmnet)
 library(tidytext)
 library(anytime)
 library(ggplot2)
+library(ggthemes)
+library(scales)
 library(car)
 library(lubridate)
 library(tm)
@@ -61,7 +63,7 @@ db$backers_count <- as.integer(db$backers_count)
 db$canceled_at <- anytime(as.numeric(db$canceled_at))
 db$category_color <- as.integer(db$category_color)
 db$category_id <- as.integer(db$category_id)
-db$category_parent_id <- as.integer(db$category_parent_id)
+db$category_parent_id <- as.character(db$category_parent_id)
 db$category_position <- as.integer(db$category_position)
 db$category_slug <- unlist(db$category_slug)
 db$comments_count <- as.integer(db$comments_count)
@@ -70,6 +72,7 @@ db$created_at <- anytime(as.numeric(db$created_at))
 db$creator_id <- as.integer(db$creator_id)
 db$deadline <- anytime(as.numeric(db$deadline))
 db$failed_at <- anytime(as.numeric(db$failed_at))
+db$full_description[is.na(db$full_description)] <- ""
 db$fx_rate <- round(as.numeric(db$fx_rate), 2)
 db$goal <- round(as.numeric(db$goal), 2)
 db$id <- as.integer(db$id)
@@ -184,7 +187,7 @@ df_engr <- data.frame(funded = as.numeric(db_cleaned$state == "successful"))
 df_engr$comments_count <- db_cleaned$comments_count
 df_engr$goal <- db_cleaned$goal
 df_engr$updates_count <- db_cleaned$updates_count
-
+df_engr$backers_count <- db_cleaned$backers_count
 
 #Campaign Stats
 df_engr$campaign_duration = round((db_cleaned$deadline - db_cleaned$launched_at), 2)
@@ -194,6 +197,7 @@ df_engr$percent_funded = round((db_cleaned$pledged/db_cleaned$goal*100), 2)
 df_engr$spotlight <- as.numeric(as.character(factor(db_cleaned$spotlight, labels = c(0, 1))))
 df_engr$staff_pick <- as.numeric(as.character(factor(db_cleaned$staff_pick, labels = c(0, 1))))
 df_engr$usa = as.numeric(db_cleaned$country == "US")
+
 
 
 #Media
@@ -211,16 +215,50 @@ df_engr$video_status[!is.na(db_cleaned$video_status)] <- 1
 df_engr$video_status[is.na(db_cleaned$video_status)] <- 0
 
 #Text Analysis
+df_engr$reward_length <- nchar(as.character(db_cleaned$rewards))
 df_engr$description_length <- nchar(db_cleaned$full_description)
-df_engr$description_length[is.na(db_cleaned$description_length)] <- 0
 
 #Dates
 df_engr$date_launched <- as.Date(db_cleaned$launched_at, format="%m/%d/%Y")
-df_engr$mo_yr_launched <- format(db_cleaned$date_launched, format="%Y-%m")
-df_engr$year_launched <- format(db_cleaned$date_launched, format="%Y")
+df_engr$mo_yr_launched <- format((df_engr$date_launched),"%m-%Y")
+df_engr$yr_launched <- format((df_engr$date_launched),"%Y")
+df_engr$mo_launched <- format((df_engr$date_launched),"%m")
+
+#Quantiles
+df_engr$goal_20 = cut(db_cleaned$goal, breaks = unique(quantile(db_cleaned$goal, seq(0, 1, by = .05))), include.lowest = TRUE)
+df_engr$description_length_10 = cut(df_engr$description_length, breaks = unique(quantile(df_engr$description_length, seq(0, 1, by = .1))), include.lowest = TRUE)
+df_engr$reward_length_10 <- cut(df_engr$reward_length, breaks = unique(quantile(df_engr$reward_length, seq(0, 1, by = .1))), include.lowest = TRUE)
+
+
+#Categories
+category_map = list(
+  "1" = "art",
+  "3" = "comics",
+  "6" = "dance",
+  "7" = "design",
+  "9" = "fashion",
+  "10" = "food",
+  "11" = "film&video",
+  "12" = "games",
+  "13" = "comics",
+  "14" = "music",
+  "15" = "photography",
+  "16" = "technology",
+  "17" = "theater",
+  "18" = "publishing",
+  "26" = "crafts")
+
+category = c()
+for (id in db_cleaned$category_parent_id) {
+  category <- append(category, category_map[id])
+}
+df_engr$category <- as.character(category)
+df_engr$category <- as.factor(df_engr$category)
+rm(category)
+rm(category_map)
+rm(id)
+
 ```
-
-
 
 ```{r include=FALSE}
 ##Export csv
