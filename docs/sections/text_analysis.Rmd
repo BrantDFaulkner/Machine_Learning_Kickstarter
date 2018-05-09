@@ -3,7 +3,7 @@ title: "Untitled"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -276,103 +276,6 @@ In natural language processing, data often arrive with little metadata to catego
 rm(docs, i, mod.out.corr, out, poliblogPrevFit, processed, vocab)
 ```
 
-
-##Classification Model
-Our final task in text analysis was to propose a mechanism for predictive binary classification of project success or failure based on project description.
-
-To prepare to fit the model, we considered both unigrams (single terms) and bigrams and filtered for words that appear in at least 500 project descriptions. We calculated tf-idf and formatted the results in a document-term matrix. We also created train and test datasets based on an 80/20% split of the data.
-
-```{r include=FALSE}
-library(naivebayes)
-library(ranger)
-```
-
-```{r include=FALSE}
-# Create data frame for model
-db_text_model <- db_cleaned %>%
-  mutate(funded = state == "successful",
-         text = str_replace_all(full_description, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
-  select(project_id, funded, text)
-
-# Unnest words by unigram and bigrams
-# Count word frequency
-db_counts <- map_df(1:2,
-                      ~ unnest_tokens(db_text_model, word, text, 
-                                      token = "ngrams", n = .x)) %>%
-  anti_join(stop_words, by = "word") %>%
-  count(project_id, word, sort = TRUE)
-
-# Filter out n-grams that occur in fewer than 500 documents
-words_500 <- db_counts %>%
-  group_by(word) %>%
-  summarise(n = n()) %>% 
-  filter(n >= 500) %>%
-  select(word)
-
-# Calculate tf-idf
-# Format into document-term matrix
-db_dtm <- db_counts %>%
-  right_join(words_500, by = "word") %>%
-  bind_tf_idf(word, project_id, n) %>%
-  cast_dtm(project_id, word, tf_idf)
-
-meta <- tibble(project_id = as.numeric(dimnames(db_dtm)[[1]])) %>%
-  left_join(db_text_model[!duplicated(db_text_model$project_id), ], by = "project_id")
-
-# Separate data into train and test sets based on 80%/20% split
-# Create train and test datasets
-n <- dim(meta)[1]
-trainIndex <- sample.int(n, size = floor(0.8*n))
-db_text_train <- meta[trainIndex,]
-db_text_test <- meta[-trainIndex,]
-response_train <- meta$funded[trainIndex]
-```
-
-We tested Naïve Bayes and Random Forest classification models.
-```{r include=FALSE, eval=FALSE}
-trctrl <- trainControl(method = "none")
-
-# Naïve Bayes
-nb_model <- train(x = db_text_train,
-                 y = as.factor(response_train),
-                method = "naive_bayes",
-               trControl = trctrl,
-                  tuneGrid = data.frame(laplace = 0, usekernel = FALSE, adjust = FALSE))
-
-nb_pred <- predict(nb_model, newdata = db_text_test)
-
-nb_cm <- confusionMatrix(nb_pred, meta[-trainIndex, ]$funded)
-nb_cm
-
-# Random Forest
-rf_model <- train(x = db_text_train, 
-                  y = as.factor(response_train), 
-                  method = "ranger",
-                  trControl = trctrl,
-                  tuneGrid = data.frame(mtry = floor(sqrt(dim(db_text_train)[2])),
-                                        splitrule = "gini",
-                                        min.node.size = 1))
-
-rf_pred <- predict(rf_model, newdata = db_text_test)
-
-rf_cm <- confusionMatrix(rf_pred, meta[-trainIndex, ]$funded)
-rf_cm
-
-# Comparison
-model_results <- rbind(nb_cm$overall, rf_cm$overall) %>%
-  as.data.frame() %>%
-  mutate(model = c("Naive-Bayes", "Random forest"))
-
-model_results %>%
-  ggplot(aes(model, Accuracy)) +
-  geom_point() +
-  ylim(0, 1) +
-  geom_hline(yintercept = model_results$AccuracyNull[1], color = "red")
-```
-
-```{r include=FALSE, eval=FALSE}
-rm(db_text_model, db_counts, words_500, db_dtm, meta, n, trainIndex, db_text_train, db_text_train, response_train, nb_model, nb_pred, nb_cm, rf_model, rf_pred, rf_cm, model_results)
-```
 
 
 ##Acknowledgements
