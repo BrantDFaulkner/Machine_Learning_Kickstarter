@@ -30,3 +30,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r child = 'sections/exploratory_analysis.Rmd'}
 
 ```
+
+```{r child = 'sections/text_analysis.Rmd'}
+
+```

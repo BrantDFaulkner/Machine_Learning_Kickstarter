@@ -12,6 +12,8 @@ knitr::opts_chunk$set(echo = TRUE)
 ## LASSO
 ```{r}
 set.seed(1)
+
+
 n <- nrow(df_engr)
 shuffled_df <- df_engr[sample(n), ]
 train_indices <- 1:round(0.8 * n)
@@ -22,30 +24,64 @@ rm(shuffled_df); rm(n); rm(test_indices); rm(train_indices);
 
 train_y <- train$funded
 train_x <- model.matrix(funded ~ 
-                    #comments_count +
-                    #Staf pick mightbe unfair variable
-                    #staff_pick +
-                    #updates_count +
-                    #video_status +
-                    #description_length +
-                    # BROKEN campaign_duration +
-                    #usa +
-                    social_media_count +
-                    goal, data = train)
+                        comments_count,
+                        goal,
+                        updates_count,
+                        backers_count,
+                        campaign_duration,
+                        avg_contribution,
+                        percent_funded,
+                        spotlight,
+                        staff_pick,
+                        usa,
+                        social_media,
+                        facebook,
+                        twitter,
+                        youtube,
+                        social_media_count,
+                        photo_key,
+                        video_status,
+                        reward_length,
+                        description_length,
+                        date_launched,
+                        mo_yr_launched,
+                        yr_launched,
+                        mo_launched,
+                        goal_20,
+                        description_length_10,
+                        reward_length_10,
+                        category, data = train)
 
 
 test_y <- test$funded
 test_x <- model.matrix(funded ~ 
-                    #comments_count +
-                    #Staf pick mightbe unfair variable
-                    #staff_pick +
-                    #updates_count +
-                    #video_status +
-                    #description_length +
-                    # BROKEN campaign_duration +
-                    #usa +
-                    social_media_count +
-                    goal, data = test)
+                        comments_count,
+                        goal,
+                        updates_count,
+                        backers_count,
+                        campaign_duration,
+                        avg_contribution,
+                        percent_funded,
+                        spotlight,
+                        staff_pick,
+                        usa,
+                        social_media,
+                        facebook,
+                        twitter,
+                        youtube,
+                        social_media_count,
+                        photo_key,
+                        video_status,
+                        reward_length,
+                        description_length,
+                        date_launched,
+                        mo_yr_launched,
+                        yr_launched,
+                        mo_launched,
+                        goal_20,
+                        description_length_10,
+                        reward_length_10,
+                        category, data = test)
 
 cvfit <- cv.glmnet(x=train_x, y=train_y, alpha = 1)
 
