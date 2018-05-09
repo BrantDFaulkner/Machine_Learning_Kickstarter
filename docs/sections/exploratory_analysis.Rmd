@@ -3,85 +3,34 @@ title: "Exploratory_Analysis"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
 #Exploratory Analysis
 
-```{r include=FALSE}
-##Project Outcomes
-#Most projects are successful or failed, but there are other end states: canceled, purged, and suspended.
-
-db %>%
-  ggplot() +
-  aes(db$state) +
-  geom_histogram(stat = "count")
-```
-
-
-##$project_id
-A random identifier, cannot easily observe a pattern
-
-```{r}
-range(db_cleaned$project_id)
-```
-
 ##$backers_count
 Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
 
 ```{r}
-#Check for NA
-anyNA(db_cleaned$backers_count)
+df_backers = data.frame(funded = df_engr$funded, backers_count = df_engr$backers_count)
+df_backers$df_bc_20 = cut(df_backers$backers_count, breaks = unique(quantile(df_backers$backers_count, seq(0, 1, by = .05))), include.lowest = TRUE)
 
-#Box Plot
-boxplot(db_cleaned$backers_count)
-
-#Linear Model
-#significant
-lm_backers_count <- glm(percent_funded ~ backers_count, data = db_cleaned)
-summary(lm_backers_count)
-
-#Logit; Filtered for visual 
-df_backers_count_filtered <- db_cleaned %>%
-  filter(backers_count < 100)
-
-logit_backers_count <- glm(funded ~ backers_count, 
-                           data = df_backers_count_filtered, 
-                           family = binomial(link='logit'))
-
-df_backers_count_filtered %>%
-  ggplot() +
-  theme_minimal() + 
-  ggtitle("$backers_count Logistic Model") +
-  geom_point(aes(x=backers_count, y=funded), colour = "black") +
-  geom_point(aes(x=backers_count, y=logit_backers_count$fitted.values), colour = "red")
-
-
-df_filtered_backers <- db_cleaned %>% 
-  mutate(backers_count_20 = cut(backers_count, 
-                                breaks = unique(quantile(backers_count, seq(0, 1, by = .05))), 
-                                include.lowest = TRUE))
-
-logit_backers_count_20 <- glm(funded ~ backers_count_20, 
-                           data = df_filtered_backers, 
-                           family = binomial(link='logit'))
-
-summary(logit_backers_count_20)
-
-df_filtered_backers %>% 
-  ggplot(aes(x = backers_count_20, y = funded)) +
-  stat_summary(geom = "bar", fun.y = "mean") +
-  geom_point(aes(x=backers_count_20, y=logit_backers_count_20$fitted.values), colour = "red")
-  theme_minimal()
-
+df_backers %>% 
+  ggplot(aes(x = df_bc_20, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Backers",
+    x="Number of Backers", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1)) +
+  theme_update(plot.title = element_text(color="#666666", face="bold", size=22, hjust=0)) +
+  theme_update(axis.title = element_text(color="#666666", face="bold", size=18)) +
+  theme(plot.title = element_text(hjust = 0.5))
+  
 #Clean Up
-rm(logit_backers_count_20)
-rm(df_filtered_backers)
-rm(lm_backers_count)
-rm(df_backers_count_filtered)
-rm(logit_backers_count)
-
+rm(df_backers)
 
 ```
 
@@ -104,9 +53,10 @@ $category_parent_id, $category_slug
 ```{r}
 # By main category
 # 15 unique categories
-db_cleaned %>%
-  group_by(category_parent_id) %>%
-  summarise(n(), 
+
+df_engr %>%
+  group_by(category) %>%
+  summarise(count = n(), 
             success_rate = round(mean(funded)*100, 2), 
             mean(goal, na.rm = TRUE), 
             min(percent_funded, na.rm = TRUE), 
@@ -121,159 +71,138 @@ db_cleaned %>%
             min(avg_contribution, na.rm = TRUE), 
             median(avg_contribution, na.rm = TRUE), 
             max(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(category_parent_id)
-
-# By subcategory
-# 140 unique category/subcategory combinations
-db_cleaned %>%
-  group_by(as.character(category_slug)) %>%
-  summarise(n(), 
-            success_rate = round(mean(funded)*100, 2), 
-            min(percent_funded, na.rm = TRUE), 
-            median(percent_funded, na.rm = TRUE), 
-            max(percent_funded, na.rm = TRUE),
-            mean(percent_funded, na.rm = TRUE), 
-            mean(backers_count), 
-            min(backers_count), 
-            median(backers_count), 
-            max(backers_count), 
-            mean(avg_contribution, na.rm = TRUE), 
-            min(avg_contribution, na.rm = TRUE), 
-            median(avg_contribution, na.rm = TRUE), 
-            max(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(category_slug)
+  arrange(desc(count)) %>%
+  ungroup(category)
 
 #Logit
 #Some categories significant
-db_cleaned$category_parent_id <- as.factor(db_cleaned$category_parent_id)
-logit_category <- glm(funded ~ category_parent_id, data = db_cleaned, family = binomial(link='logit'))
+logit_category <- glm(funded ~ category, data = df_engr, family = binomial(link='logit'))
 summary(logit_category)
+
+df_engr %>% 
+  group_by(category) %>%
+  summarise(count = n(), 
+            funded_rate = round(mean(funded)*100, 2)) %>%
+  arrange(desc(count)) %>%
+  ggplot(aes(x = reorder(category, -count), y = count)) +
+  geom_bar(stat="identity", fill = "#332288") +
+  labs(
+    title = "Frequency By Category",
+    x="Project Category", 
+    y="Number of Projects") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
+df_engr %>% 
+  group_by(category) %>%
+  summarise(count = n(), 
+            funded_rate = round(mean(funded)*100, 2)) %>%
+  arrange(desc(count)) %>%
+  ggplot(aes(x = reorder(category, -count), y = funded_rate)) +
+  geom_bar(stat="identity", fill = "#332288") +
+  labs(
+    title = "Funding By Category",
+    x="Project Category", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
+# By subcategory
+# 140 unique category/subcategory combinations
+#df_cats %>%
+#  group_by(as.character(category_slug)) %>%
+#  summarise(n(), 
+#            success_rate = round(mean(funded)*100, 2), 
+#            min(percent_funded, na.rm = TRUE), 
+#            median(percent_funded, na.rm = TRUE), 
+#            max(percent_funded, na.rm = TRUE),
+#            mean(percent_funded, na.rm = TRUE), 
+#            mean(backers_count), 
+#            min(backers_count), 
+#            median(backers_count), 
+#            max(backers_count), 
+#            mean(avg_contribution, na.rm = TRUE), 
+#            min(avg_contribution, na.rm = TRUE), 
+#            median(avg_contribution, na.rm = TRUE), 
+#            max(avg_contribution, na.rm = TRUE)) %>%
+#  ungroup(category_slug)
+
+
 
 #Clean up
 rm(logit_category)
+
 ```
 
 ## Explore $comments_count
 The vast majority of projects received fewer than 20 comments. Success rate seems to increases exponentially when more comments are received.
 
 ```{r}
+df_commments = data.frame(funded = df_engr$funded, 
+                          comments_count = db_cleaned$comments_count)
+df_commments$df_cc_20 = cut(df_commments$comments_count, 
+                            breaks = unique(quantile(df_commments$comments_count, 
+                                                     seq(0, 1, by = .05))), 
+                            include.lowest = TRUE)
 
-db_cleaned %>%
-  ggplot() +
+df_commments %>% 
+  ggplot(aes(x = df_cc_20, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Comments",
+    x="Number of Comments", 
+    y="Chance of Funding") + 
   theme_minimal() +
-  ggtitle("$comments_count") +
-  geom_point(aes(x = project_id, y = comments_count))
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 
 #Logit
 #significant
-logit_comments <- glm(funded ~ comments_count, data = db_cleaned, family = binomial(link='logit'))
+logit_comments <- glm(funded ~ comments_count, data = df_commments, family = binomial(link='logit'))
 summary(logit_comments)
 
 #Group into deciles and look as levels
-df_comments_count_filtered <- db_cleaned %>%
-  filter(comments_count <= 200) %>% 
-  mutate(comment_count_10 = cut(comments_count, 10))
+#df_comments_count_filtered <- db_cleaned %>%
+#  filter(comments_count <= 200) %>% 
+#  mutate(comment_count_10 = cut(comments_count, 10))
 
-df_comments_count_filtered %>%
-  ggplot() + 
-  theme_minimal() + 
-  ggtitle("$comment_count in Deciles") + 
-  geom_histogram(aes(comment_count_10), stat = "count")
+#df_comments_count_filtered %>%
+#  ggplot() + 
+#  theme_minimal() + 
+#  ggtitle("$comment_count in Deciles") + 
+#  geom_histogram(aes(comment_count_10), stat = "count")
 
-df_comments_count_filtered %>%
-  group_by(comment_count_10) %>%
-  summarise(n(), 
-            mean(comments_count), 
-            success_rate = round(mean(funded)*100, 2), 
-            mean(backers_count), 
-            mean(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(comment_count_10)
+#df_comments_count_filtered %>%
+#  group_by(comment_count_10) %>%
+#  summarise(n(), 
+#            mean(comments_count), 
+#            success_rate = round(mean(funded)*100, 2), 
+#            mean(backers_count), 
+#            mean(avg_contribution, na.rm = TRUE)) %>%
+#  ungroup(comment_count_10)
 
 #Clean up
 rm(logit_comments)
-rm(df_comments_count_filtered)
+rm(df_commments)
 ```
 
-##$converted_pledged_amount
-Validate hypothesis that $converted_pledged_amount = $fx_rate * $pledged
-
-```{r}
-# fx_rate is the exchange rate to USD
-for (i in length(db_cleaned$converted_pledged_amount)) {
-  if (db_cleaned$converted_pledged_amount[i] == db_cleaned$fx_rate[i]*db_cleaned$pledged[i]) {
-    i = i + 1
-  } else {
-    print("FALSE")
-  }
-  print("COMPLETE")
-}
-```
-
-##$disable_communication
-This is not a user initiated setting, rather an effect of a project being suspended.
-
-```{r}
-df_filtered_disable_communicaiotn <- db %>%
-  filter(disable_communication == "True")
-
-df_filtered_state_suspended <- db %>%
-  filter(state == "suspended")
-
-rownames(df_filtered_disable_communicaiotn) == rownames(df_filtered_state_suspended)
-
-#Clean Up
-rm(df_filtered_disable_communicaiotn)
-rm(df_filtered_state_suspended)
-```
 
 ##$goal
 Goal is likely a good predicter. The vast majority of goals are under $50,000. The likelihood of being funded decreases as goals get larger.
 
 ```{r}
-db_cleaned$goal %>%
-  summary()
+df_engr %>% 
+  ggplot(aes(x = goal_20, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Goal",
+    x="Goal Amount", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 
-#Linear Model
-#not significant
-lm_goal <- glm(percent_funded ~ goal, data = db_cleaned)
-summary(lm_goal)
-
-#Logit; Filtered for visual 
-df_filtered_by_goal <- db_cleaned %>%
-  filter(goal < 200000)
-
-logit_goal <- glm(funded ~ goal, data = df_filtered_by_goal, family=binomial(link='logit'))
-
-df_filtered_by_goal %>%
-  ggplot() +
-  theme_minimal() + 
-  ggtitle("$goal Logistic Model") +
-  geom_point(aes(x=goal, y=funded), colour = "black") +
-  geom_point(aes(x=goal, y=logit_goal$fitted.values), colour = "red")
-
-# Group into deciles and look as level
-df_filtered_by_goal <- df_filtered_by_goal %>%
-  mutate(goal_10 = cut(goal, 10))
-
-df_filtered_by_goal %>%
-  group_by(goal_10) %>%
-  summarise(n(),
-            mean(goal), 
-            success_rate = round(mean(funded)*100, 2), 
-            mean(backers_count), 
-            mean(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(goal_10)
-
-df_filtered_by_goal %>%
-  ggplot() + 
-  theme_minimal() + 
-  ggtitle("$goal in Deciles") + 
-  geom_histogram(aes(goal_10), stat = "count")
-
-#Clean up
-rm(df_filtered_by_goal)
-rm(lm_goal)
-rm(logit_goal)
+#Linear Models
+summary(glm(funded ~ goal, data = df_engr))
+summary(glm(funded ~ goal_20, data = df_engr))
 ```
 
 ##$launched_at
@@ -281,7 +210,7 @@ The number of projects increased exponentially 2009 - 2012 and seems to be incre
 The dataset has only partial data for December 2013.
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(mo_yr_launched)  %>% 
   summarise(n(), 
             success_rate = round(mean(funded)*100, 2),
@@ -289,9 +218,38 @@ db_cleaned %>%
             mean (avg_contribution, na.rm = TRUE)) %>%
   ungroup(mo_yr_launched)
 
-db_cleaned %>%
-  ggplot() + 
-  geom_histogram(aes(x=year_launched), stat = "count")
+df_engr %>% 
+  ggplot(aes(x = yr_launched, y = funded)) +
+  geom_bar(stat="identity", fill = "#332288") +
+    labs(
+    title = "Project Launch By Year",
+    x="Year", 
+    y="Projects Launched") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
+df_engr %>% 
+  ggplot(aes(x = yr_launched, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Year",
+    x="Year", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
+df_engr %>% 
+  ggplot(aes(x = mo_launched, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Goal",
+    x="Goal Amount", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
+summary(glm(funded ~ mo_launched, data = df_engr))
+
 ```
 
 ##location variables
@@ -299,75 +257,58 @@ db_cleaned %>%
 The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects.  
 
 ```{r}
-db_cleaned %>%
+df_country <- data.frame(funded = df_engr$funded, country = db_cleaned$country, usa = df_engr$usa)
+
+df_country %>%
   group_by(country) %>%
-    summarise(n(), mean(funded)) %>%
+    summarise(count = n(), funded_rate = mean(funded)) %>%
+  arrange(desc(count)) %>%
   ungroup(country)
 
-lm_country <- lm(funded ~ US, data = db_cleaned)
-summary(lm_country)
+summary(lm(funded ~ usa, data = df_country))
 
 #Clean up
-rm(lm_country)
+rm(df_country)
 ```
 
-###Other Location variables
-These would require a lot of cleaning, and might be valuable for making heat maps. However, they are not condusive to making a prediction.
-
-```{r}
-db_cleaned %>%
-  group_by(location_name) %>%
-    summarise(n(), mean(funded)) %>%
-  ungroup(location_name)
-
-db_cleaned %>%
-  group_by(location_state) %>%
-    summarise(n(), mean(funded)) %>% 
-  ungroup(location_state)
-
-db_cleaned %>%
-  group_by(location_type) %>%
-    summarise(n(), mean(funded)) %>%
-  ungroup(location_type)
-```
 
 ##$photo_key
 There are not enough zero values for prediction, and a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(photo_key) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(photo_key)
 
-t.test(funded ~ photo_key, data = db_cleaned)
+t.test(funded ~ photo_key, data = df_engr)
 ```
 
 ##$pledged
 The higher the pledged amount, the more backers there are. The average contribution per backer does not seem to change much even as the amount pledged increases.
 
 ```{r}
-# Group into deciles and look as levels
-df_filtered_by_pledged <- db_cleaned %>%
-  filter(pledged < 200000) %>%
-  mutate(pledged_10 = cut(pledged, 10))
-
-df_filtered_by_pledged %>%
-  group_by(pledged_10) %>%
-  summarise(n(), 
-            mean(pledged), 
-            mean(backers_count), 
-            mean(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(pledged_10)
-
-df_filtered_by_pledged %>%
-  ggplot() + 
-  theme_minimal() + 
-  ggtitle("$pledged in Deciles") + 
-  geom_histogram(aes(pledged_10), stat = "count")
-
-#Clean up
-rm(df_filtered_by_pledged)
+# # Group into deciles and look as levels
+# df_filtered_by_pledged <- db_cleaned %>%
+#   filter(pledged < 200000) %>%
+#   mutate(pledged_10 = cut(pledged, 10))
+# 
+# #df_filtered_by_pledged %>%
+#   group_by(pledged_10) %>%
+#   summarise(n(), 
+#             mean(pledged), 
+#             mean(backers_count), 
+#             mean(avg_contribution, na.rm = TRUE)) %>%
+#   ungroup(pledged_10)
+# 
+# df_filtered_by_pledged %>%
+#   ggplot() + 
+#   theme_minimal() + 
+#   ggtitle("$pledged in Deciles") + 
+#   geom_histogram(aes(pledged_10), stat = "count")
+# 
+# #Clean up
+# rm(df_filtered_by_pledged)
 ```
 
 ##$spotlight
@@ -375,7 +316,7 @@ Spotlight is an ex post facto variable that features funded projects.
 [Kickstarter Spotlight](https://www.kickstarter.com/spotlight)
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(spotlight) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(spotlight)
@@ -386,7 +327,7 @@ This flag denotes projectsthat have received the "Projects We Love" badge and ge
 [Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(staff_pick) %>%
     summarise(n(), mean(funded)) %>% 
   ungroup(staff_pick)
@@ -396,7 +337,7 @@ db_cleaned %>%
 On average: projects that are funded far exceed their goal amount; the average contribution per backer is higher and there are more backers; and the goal amount tends to be significantly lower.
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(funded) %>%
   summarise(n(),
             mean(percent_funded, na.rm = TRUE), 
@@ -413,12 +354,12 @@ db_cleaned %>%
 T test shows having a video to statistically significantly impact the success of the project. 
 
 ```{r}
-db_cleaned %>%
+df_engr %>%
   group_by(video_status) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(video_status)
 
-t.test(funded ~ video_status, data = db_cleaned)
+t.test(funded ~ video_status, data = df_engr)
 ```
 
 ##Social media connectedness variables
@@ -426,43 +367,43 @@ Social media shows an impact. Facebook seems to be the strongest and Youtube has
 
 ```{r}
 #facebook
-db_cleaned %>%
+df_engr %>%
   group_by(facebook) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(facebook)
 
 #twiter
-db_cleaned %>%
+df_engr %>%
   group_by(twitter) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(twitter)
 
 #youtube
-db_cleaned %>%
+df_engr %>%
   group_by(youtube) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(youtube)
 
 #social_media
-db_cleaned %>%
+df_engr %>%
   group_by(social_media) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(social_media)
 
-lm_social_media <- lm(funded ~ social_media, data = db_cleaned)
+lm_social_media <- lm(funded ~ social_media, data = df_engr)
 summary(lm_social_media)
 
 
 #social_media_count
-db_cleaned %>%
+df_engr %>%
   group_by(social_media_count) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(social_media_count)
 
-lm_social_media_count <- lm(funded ~ social_media_count, data = db_cleaned)
+lm_social_media_count <- lm(funded ~ social_media_count, data = df_engr)
 summary(lm_social_media_count)
 
-db_cleaned %>% 
+df_engr %>% 
   ggplot(aes(x = social_media_count, y = funded)) +
   stat_summary(geom = "bar", fun.y = "mean") +
   theme_minimal()
@@ -477,15 +418,15 @@ Interestingly, campaign duration has an inverse relationship to the likelihood o
 ```{r}
 #Linear Model
 #not significant
-lm_length <- glm(percent_funded ~ campaign_duration, data = db_cleaned)
+lm_length <- glm(percent_funded ~ campaign_duration, data = df_engr)
 summary(lm_length)
 
 #Logit
 #significant
-logit_length <- glm(funded ~ campaign_duration, data = db_cleaned, family=binomial(link='logit'))
+logit_length <- glm(funded ~ campaign_duration, data = df_engr, family=binomial(link='logit'))
 summary(logit_length)
 
-db_cleaned %>%
+df_engr %>%
   ggplot() +
   theme_minimal() + 
   ggtitle("$campaign_length Logistic Model") +
@@ -500,12 +441,12 @@ Appears to have a skewed normal distribution with a mean of $72.
 
 ```{r}
 #Chck for NA
-anyNA(db_cleaned$avg_contribution)
+anyNA(df_engr$avg_contribution)
 
-mean(db_cleaned$avg_contribution, na.rm = TRUE)
+mean(df_engr$avg_contribution, na.rm = TRUE)
 
 # Apparently normal distribution
-df_filtered_by_avg_contribution <- db_cleaned %>%
+df_filtered_by_avg_contribution <- df_engr %>%
   filter(avg_contribution < 1500)
 
 # Box Plot
@@ -525,11 +466,11 @@ Non-normal distribution shows that most projects over ~75% of their goal wind up
 
 ```{r}
 # Check for NA
-anyNA(db_cleaned$percent_funded)
+anyNA(df_engr$percent_funded)
 
-mean(db_cleaned$percent_funded, na.rm = TRUE)
+mean(df_engr$percent_funded, na.rm = TRUE)
 
-df_filtered_by_percent_funded <- db_cleaned %>%
+df_filtered_by_percent_funded <- df_engr %>%
   filter(!is.na(percent_funded) & percent_funded <= 400)
 
 # Box Plot
@@ -547,7 +488,15 @@ rm(df_filtered_by_percent_funded)
 ##$description_length
 
 ```{r}
-
+df_engr %>% 
+  ggplot(aes(x = description_length_10, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Description",
+    x="Length of Description", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
 ##Profile variables
@@ -560,6 +509,16 @@ $profile_blurb, $profile_state
 ##$rewards
 
 ```{r}
+df_engr %>% 
+  ggplot(aes(x = reward_length_10, y = funded)) +
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+    labs(
+    title = "Funding By Rewards",
+    x="Length of Rewards", 
+    y="Chance of Funding") + 
+  theme_minimal() +
+  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+
 
 ```
 
@@ -591,4 +550,80 @@ mean(ticktock$deadline_state)
 rm(ticktock)
 ```
 
+## Not Fully Explored
+More granular location variables would require more cleaning and may produce regional insights. 
+* `location_name`
+* `location_state`
+* `location_type`
 
+
+## Rejected
+We looked at this, yet did not find them to be predictive:
+* `project_id`
+* `disable_communicaiton`
+
+
+```{r}
+##$project_id
+#A random identifier, cannot easily observe a pattern
+range(db_cleaned$project_id)
+```
+
+```{r include=FALSE, eval=FALSE}
+##$converted_pledged_amount
+#Validate hypothesis that $converted_pledged_amount = $fx_rate * $pledged
+
+# fx_rate is the exchange rate to USD
+for (i in length(db_cleaned$converted_pledged_amount)) {
+  if (db_cleaned$converted_pledged_amount[i] == db_cleaned$fx_rate[i]*db_cleaned$pledged[i]) {
+    i = i + 1
+  } else {
+    print("FALSE")
+  }
+  print("COMPLETE")
+}
+```
+
+```{r include=FALSE, eval=FALSE}
+##$disable_communication
+#This is not a user initiated setting, rather an effect of a project being suspended.
+
+df_filtered_disable_communicaiotn <- db_cleaned %>%
+  filter(disable_communication == "True")
+
+df_filtered_state_suspended <- db %>%
+  filter(state == "suspended")
+
+rownames(df_filtered_disable_communicaiotn) == rownames(df_filtered_state_suspended)
+
+#Clean Up
+rm(df_filtered_disable_communicaiotn)
+rm(df_filtered_state_suspended)
+```
+
+```{r include=FALSE, eval=FALSE}
+###Other Location variables
+#These would require a lot of cleaning, and might be valuable for making heat maps. However, they are not condusive to making a prediction.
+
+df_country <- data.frame(funded = df_engr$funded,
+                         location_name = db_cleaned$location_name,
+                         location_state = db_cleaned$location_state,
+                         location_type = db_cleaned$location_type)
+
+df_country %>%
+  group_by(location_name) %>%
+    summarise(n(), mean(funded)) %>%
+  ungroup(location_name)
+
+df_country %>%
+  group_by(location_state) %>%
+    summarise(n(), mean(funded)) %>% 
+  ungroup(location_state)
+
+df_country %>%
+  group_by(location_type) %>%
+    summarise(n(), mean(funded)) %>%
+  ungroup(location_type)
+
+rm(df_country)
+```
