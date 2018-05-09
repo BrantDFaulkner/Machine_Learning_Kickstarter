@@ -7,13 +7,18 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+#Data Collection and Cleaning
+
+Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
+
+Of these projects, possible outcome states included failed, succesful, suspended, canceled, and purged. We excluded 1,246 projects with suspended, canceled, or purged outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the amount pledged (e.g., state is listed as failed when the amout pledged exceeded the goal). The final dataset for analysis contained 49,350 projects.
+
+Of the original 120 variables, 41 contained meaningful information for analyses. Selecting from, transforming, and performing additional computations resulted in 29 variables used in subsequent exploratory analysis and machine learning. These variables are described in the Data Dictionary below.
 
 ```{r include=FALSE}
 library(DBI)
 library(RSQLite)
 library(MASS)
-library(tidyverse)
-library(glmnet)
 library(tidytext)
 library(anytime)
 library(ggplot2)
@@ -31,6 +36,8 @@ library(dplyr)
 library(rpart)
 library(rpart.plot)
 library(randomForest)
+library(tidyverse)
+library(glmnet)
 ```
 
 
@@ -188,6 +195,7 @@ df_engr$comments_count <- db_cleaned$comments_count
 df_engr$goal <- db_cleaned$goal
 df_engr$updates_count <- db_cleaned$updates_count
 df_engr$backers_count <- db_cleaned$backers_count
+df_engr$full_description <- db_cleaned$full_description
 
 #Campaign Stats
 df_engr$campaign_duration = round((db_cleaned$deadline - db_cleaned$launched_at), 2)
@@ -207,6 +215,7 @@ df_engr$facebook <- as.numeric(!is.na(db_cleaned$facebook))
 df_engr$twitter <- as.numeric(!is.na(db_cleaned$twitter)) 
 df_engr$youtube <- as.numeric(!is.na(db_cleaned$youtube))
 df_engr$social_media_count <- df_engr$facebook + df_engr$twitter + df_engr$youtube
+df_engr$social_media_count <- as.factor(df_engr$social_media_count)
 
 df_engr$photo_key[!is.na(db_cleaned$photo_key)] <- 1
 df_engr$photo_key[is.na(db_cleaned$photo_key)] <- 0
@@ -240,7 +249,7 @@ category_map = list(
   "10" = "food",
   "11" = "film&video",
   "12" = "games",
-  "13" = "comics",
+  "13" = "journalism",
   "14" = "music",
   "15" = "photography",
   "16" = "technology",
