@@ -7,7 +7,88 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-```{r include=FALSE}
+#Data Dictionary
+
+```{r}
+#Create data frame
+dictionary <- as.data.frame(matrix(0, nrow = 29, ncol = 4, 
+                                   dimnames = list(NULL, c("name", "description", "type", "values"))))
+
+# Populate first column with variable names from df_engr
+dictionary$name <- c(colnames(df_engr))
+
+# Manually write definitions
+dictionary$description <- c("Binary indication if the project was successful or failed.
+                            Successful projects match or exceed their goal on or before the deadline",
+                            "Number of comments Kickstarter users post on a project page during the campaign",
+                            "Goal amount specified at the beginning of the campaign, in local currency",
+                            "Number of times the project page was updated during the campaign",
+                            "Number of backers that contributed to the project",
+                            "Text description of the project",
+                            "Length of the campaign from launch to deadline, in days",
+                            "Mean amount pledged per backer, in local currency",
+                            "Percent of goal received (%)",
+                            "Binary variable indicating ex post facto variable that features funded projects",
+                            "Binary variable indicating staff selection to receive “Projects We Love” badge, 
+                            which are prominantly featured",
+                            "Binary variable indicating location in the US (1) or in another country (0)",
+                            "Binary variable indicating if any links to creator's social media were provided",
+                            "Binary variable indicating if creator linked to Facebook",
+                            "Binary variable indicating if creator linked to Twitter",
+                            "Binary variable indicating if creator linked to YouTube",
+                            "Counts the number of links to social media provided by the creator",
+                            "Binary variable indicating if the project page had a photo",
+                            "Binary variable indicating if the project page had a video",
+                            "Number of characters describing the reward structure for backers",
+                            "Number of characters in the full project description",
+                            "Date of project launch (yyyy-mm-dd)",
+                            "Month and year of project launch (mm-yyyy)",
+                            "Year of project launch (yyyy)",
+                            "Month of project launch (mm)",
+                            "Factor assigned to goal amounts, by ventiles",
+                            "Factor assigned to full description lengths, by deciles",
+                            "Factor assigned to reward description lengths, by deciles",
+                            "One of 15 names describing of the project category")
+
+# Populate third column the variable type
+dictionary$type <- c(sapply(df_engr, class))
+  
+# Manually input values in fourth column
+dictionary$values <- c("1 successful; 0 failed",
+                       c(min(df_engr$comments_count), max(df_engr$comments_count)),
+                       c(min(df_engr$goal), max(df_engr$goal)),
+                       c(min(df_engr$updates_count), max(df_engr$updates_count)),
+                       c(min(df_engr$backers_count), max(df_engr$backers_count)),
+                       "N/A",
+                       c(min(df_engr$campaign_duration), max(df_engr$campaign_duration)),
+                       c(min(df_engr$avg_contribution), max(df_engr$avg_contribution)),
+                       c(min(df_engr$percent_funded), max(df_engr$percent_funded)),
+                       "1 spotlight; 0 no spotlight",
+                       "1 selected; 0 not selected",
+                       "1 US; 0 other country",
+                       "1 at least one link to social media provided; 0 no links to social media",
+                       "1 link to creator Facebook; 0 no link",
+                       "1 link to creator Twitter; 0 no link",
+                       "1 link to creator YouTube; 0 no link",
+                       c(min(df_engr$social_media_count), max(df_engr$social_media_count)),
+                       "1 has photo; 0 none",
+                       "1 has video; 0 none",
+                       c(min(df_engr$reward_length), max(df_engr$reward_length)),
+                       c(min(df_engr$description_length), max(df_engr$description_length)),
+                            "Date of project launch (yyyy-mm-dd)",
+                            "Month and year of project launch (mm-yyyy)",
+                            "Year of project launch (yyyy)",
+                            "Month of project launch (mm)",
+                            "Factor assigned to goal amounts, by ventiles",
+                            "Factor assigned to full description lengths, by deciles",
+                            "Factor assigned to reward description lengths, by deciles",
+                            "One of 15 names describing of the project category")
+
+print(dictionary)
+rm(dictionary)
+```
+
+```{r include=FALSE, eval=FALSE}
 #Data Cleaning
 #Understand available explanatory variables and make the data friendly for analysis.
 ##db dimensions and column names
@@ -18,7 +99,7 @@ nrow(db)
 names(db)
 ```
 
-```{r  include=FALSE}
+```{r  include=FALSE, eval=FALSE}
 ##Check variables with only one level
 #Six variables with only one level; we will remove these in db_cleaned.
 
@@ -30,29 +111,3 @@ for (j in 1:ncol(db)) {
 ```
 
 
-
-```{r}
-##Data Dictionaries
-#Create data frames
-dictionary_db <- as.data.frame(matrix(0, nrow = 120, ncol = 4, 
-                                      dimnames = list(NULL, c("name", "description", "type", "values"))))
-
-dictionary_db_cleaned <- as.data.frame(matrix(0, nrow = 49, ncol = 4, 
-                                              dimnames = list(NULL, c("name", "description", "type", "values"))))
-
-#Populate first columns of the data frames with the variable names from db and db_cleaned
-dictionary_db$name <- c(colnames(db))
-dictionary_db_cleaned$name <- c(colnames(db_cleaned))
-
-#Manually write in definitions in the second column of the data frame
-#dictionary_db$description <- c()
-#dictionary_db_cleaned$description <- c()
-
-#Populate the third column with the variable type
-dictionary_db$type <- c(sapply(db, class))
-dictionary_db_cleaned$type <- c(sapply(db_cleaned, class))
-  
-#Popoulate the fourth column with possible values and meanings
-#dictionary_db$values <- c(sapply(db, range))
-#dictionary_db_cleaned$values <- c(sapply(db_cleaned, range))
-```
