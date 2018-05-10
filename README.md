@@ -8,11 +8,11 @@
 
 We are just finishing our MBAs at Illinois Gies College of Business, with a concentration in Business Data Analytics. We chose this project because we knew it would push us past the skills we have learned in the classroom and hopefully discover some new business insights.
 
-Did machine learning help us predict which Kickstarter projects would be funded?
+__Did machine learning help us predict which Kickstarter projects would be funded?__
 
-Did we find any useful advice for soon to be Kickstarter creators?
+__Did we find any useful advice for soon to be Kickstarter creators?__
 
-[Dive into our full report to find out!](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
+##[Dive into our full report to find out!](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
 
 
 
