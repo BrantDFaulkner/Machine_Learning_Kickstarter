@@ -9,54 +9,62 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Exploratory Analysis
 
+```{r include = FALSE}
+#Customize ggplot theme
+theme_set(theme_minimal())
+theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+theme_update(plot.title = element_text(color="#666666", face="bold", size=22, hjust=0))
+theme_update(axis.title = element_text(color="#666666", face="bold", size=18))
+theme_update(plot.title = element_text(hjust = 0.5))
+```
+
+
 ## Ex Post Facto
 Ex Post Facto variables are those that generally only exist at the end of the project. These are interesting to examine and can provide valuable insight into Kickstarter, however, they are not appropriate to use in our predictive models as they are pseudo outcome variables. 
 
-### backers_count
-`backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`. 
+### `backers_count`
+`backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`.
 
 ```{r echo = FALSE}
 df_backers = data.frame(funded = df_engr$funded, backers_count = df_engr$backers_count)
 df_backers$df_bc_20 = cut(df_backers$backers_count, breaks = unique(quantile(df_backers$backers_count, seq(0, 1, by = .05))), include.lowest = TRUE)
 
 df_backers %>% 
-  ggplot(aes(x = df_bc_20, y = funded)) +
-  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
-    labs(
-    title = "Funding By Backers",
-    x="Number of Backers", 
-    y="Chance of Funding") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1)) +
-  theme_update(plot.title = element_text(color="#666666", face="bold", size=22, hjust=0)) +
-  theme_update(axis.title = element_text(color="#666666", face="bold", size=18)) +
-  theme(plot.title = element_text(hjust = 0.5))
+  group_by(df_bc_20) %>%
+  summarise(avg_funded = mean(funded)) %>%
+  ggplot(aes(x = df_bc_20, y = avg_funded)) +
+    geom_bar(stat="identity", fill = "#332288") +
+    labs(title = "Funding By Backers",
+         x="Number of Backers",
+         y="Chance of Funding")
   
 #Clean Up
 rm(df_backers)
-
 ```
 
 ## Day Zero
 Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
 
 
-### category
-- Some categories never fail in this dataset (only considered if n > 50):
-  - design/product design (1098 projects)
-  - film & video/documentary (2202 projects)
-  - film & video/shorts (3513 projects)
-  - games/tabletop games (1064 projects)
-- Most successful parent categories (only considered if n > 100):
-  - 7 1,725 projects 81.2% successful
-  - 11 12,087 projects 65.2% successful
-  - 14 14,635 projects 59.2% successful
-- Least successful parent categories (only considered if n > 100):
-  - 18 8,725 projects 39.7% successful
-  - 16 1,638 projects 46.2% successful
-  - 12 4,125 projects 46.9% successful
+### `category`
+
+Some categories never fail in this dataset (only considered if n > 50):
+* design/product design (1098 projects)
+* film & video/documentary (2202 projects)
+* film & video/shorts (3513 projects)
+* games/tabletop games (1064 projects)
+
+Most successful parent categories (only considered if n > 100):
+* 7 1,725 projects 81.2% successful
+* 11 12,087 projects 65.2% successful
+* 14 14,635 projects 59.2% successful
+
+Least successful parent categories (only considered if n > 100):
+* 18 8,725 projects 39.7% successful
+* 16 1,638 projects 46.2% successful
+* 12 4,125 projects 46.9% successful
   
-```{r}
+```{r echo = FALSE}
 # By main category
 # 15 unique categories
 
@@ -83,23 +91,29 @@ df_engr %>%
 
 #Logit
 #Some categories significant
-logit_category <- glm(funded ~ category, data = df_engr, family = binomial(link='logit'))
-summary(logit_category)
+#logit_category <- glm(funded ~ category, data = df_engr, family = binomial(link='logit'))
+#summary(logit_category)
+#Clean up
+#rm(logit_category)
+```
 
+#### Frequency by `category`
+The distribution of projects by category shows Kickstarter has an intense focus on creative projects. We hypothesize that the minimal appearance of some categories suggests that Kickstarter's classification system tends to favor large, general grouping. It may also be arbitrary in some instances as many `dance` and `photography` projects could readily be placed in `art`.
+
+```{r echo = FALSE}
 df_engr %>% 
   group_by(category) %>%
-  summarise(count = n(), 
-            funded_rate = round(mean(funded)*100, 2)) %>%
-  arrange(desc(count)) %>%
+  summarise(count = n()) %>%
   ggplot(aes(x = reorder(category, -count), y = count)) +
   geom_bar(stat="identity", fill = "#332288") +
   labs(
     title = "Frequency By Category",
     x="Project Category", 
-    y="Number of Projects") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+    y="Number of Projects")
 
+```
+
+```{r echo = FALSE}
 df_engr %>% 
   group_by(category) %>%
   summarise(count = n(), 
@@ -112,32 +126,7 @@ df_engr %>%
     x="Project Category", 
     y="Chance of Funding") + 
   theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
-
-# By subcategory
-# 140 unique category/subcategory combinations
-#df_cats %>%
-#  group_by(as.character(category_slug)) %>%
-#  summarise(n(), 
-#            success_rate = round(mean(funded)*100, 2), 
-#            min(percent_funded, na.rm = TRUE), 
-#            median(percent_funded, na.rm = TRUE), 
-#            max(percent_funded, na.rm = TRUE),
-#            mean(percent_funded, na.rm = TRUE), 
-#            mean(backers_count), 
-#            min(backers_count), 
-#            median(backers_count), 
-#            max(backers_count), 
-#            mean(avg_contribution, na.rm = TRUE), 
-#            min(avg_contribution, na.rm = TRUE), 
-#            median(avg_contribution, na.rm = TRUE), 
-#            max(avg_contribution, na.rm = TRUE)) %>%
-#  ungroup(category_slug)
-
-
-
-#Clean up
-rm(logit_category)
+  theme(axis.text.x = element_text(angle = 60, hjust = 1))
 
 ```
 

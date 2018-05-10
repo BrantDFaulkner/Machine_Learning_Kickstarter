@@ -4,7 +4,7 @@ author: "Brant Faulkner & Courtney Allen"
 output: 
   html_document:
     toc: true
-    toc_depth: 2
+    toc_depth: 4
     toc_float: true
     theme: simplex
     fig_caption: true
