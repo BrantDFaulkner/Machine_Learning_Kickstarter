@@ -6,14 +6,22 @@
 
 
 # About Us
-<img src="img/brant.jpeg" align="left" width="150"/>
+<img src="img/brant.jpg" align="left" width="150"/>
 
 __Brant D Faulkner__
 
-I really enjoyed taking on a data analytics project in the _wild_. Building a web scraper in Python and building a custom database from scratch just to get the ball rolling!  
+I enjoyed taking on a data analytics project in the _wild_. Building a web scraper in Python and designing a custom database from scratch to get the ball rolling!  
 
 Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/brantdfaulkner/)!
 
+
+<img src="img/courtney.jpg" align="right" width="150"/>
+
+__Courtney M Allen__
+
+I love group fitness. I guess data is cool too.
+
+Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/courtneymarieallen/)!
 
 ---
 Independent Study
