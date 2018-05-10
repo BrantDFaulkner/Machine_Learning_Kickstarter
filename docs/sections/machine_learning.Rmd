@@ -12,8 +12,6 @@ knitr::opts_chunk$set(echo = TRUE)
 ## LASSO
 ```{r}
 set.seed(1)
-
-
 n <- nrow(df_engr)
 shuffled_df <- df_engr[sample(n), ]
 train_indices <- 1:round(0.8 * n)
@@ -24,73 +22,37 @@ rm(shuffled_df); rm(n); rm(test_indices); rm(train_indices);
 
 train_y <- train$funded
 train_x <- model.matrix(funded ~ 
-                        comments_count,
-                        goal,
-                        updates_count,
-                        backers_count,
-                        campaign_duration,
-                        avg_contribution,
-                        percent_funded,
-                        spotlight,
-                        staff_pick,
-                        usa,
-                        social_media,
-                        facebook,
-                        twitter,
-                        youtube,
-                        social_media_count,
-                        photo_key,
-                        video_status,
-                        reward_length,
-                        description_length,
-                        date_launched,
-                        mo_yr_launched,
-                        yr_launched,
-                        mo_launched,
-                        goal_20,
-                        description_length_10,
-                        reward_length_10,
-                        category, data = train)
+  campaign_duration +
+  usa +
+  social_media_count +
+  photo_key +
+  video_status +
+  mo_launched +
+  category +
+  goal_20 +
+  description_length_10 +
+  reward_length_10, data = train)
 
 
 test_y <- test$funded
 test_x <- model.matrix(funded ~ 
-                        comments_count,
-                        goal,
-                        updates_count,
-                        backers_count,
-                        campaign_duration,
-                        avg_contribution,
-                        percent_funded,
-                        spotlight,
-                        staff_pick,
-                        usa,
-                        social_media,
-                        facebook,
-                        twitter,
-                        youtube,
-                        social_media_count,
-                        photo_key,
-                        video_status,
-                        reward_length,
-                        description_length,
-                        date_launched,
-                        mo_yr_launched,
-                        yr_launched,
-                        mo_launched,
-                        goal_20,
-                        description_length_10,
-                        reward_length_10,
-                        category, data = test)
+  campaign_duration +
+  usa +
+  social_media_count +
+  photo_key +
+  video_status +
+  mo_launched +
+  category +
+  goal_20 +
+  description_length_10 +
+  reward_length_10, data = test)
 
 cvfit <- cv.glmnet(x=train_x, y=train_y, alpha = 1)
 
 coef(cvfit, s = "lambda.min")
 
-
 mean(test_y)
 mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "response") >= .5))
-
 ```
 
 
@@ -98,16 +60,16 @@ mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "respo
 ```{r}
 set.seed(1)
 tree <- rpart(funded ~ 
-                comments_count +
-                    goal +
-                    #Staf pick mightbe unfair variable
-                    #staff_pick +
-                    updates_count +
-                    video_status +
-                    #description_length +
-                    # BROKEN campaign_duration +
-                    usa +
-                    social_media_count, data = train)
+  campaign_duration +
+  usa +
+  social_media_count +
+  photo_key +
+  video_status +
+  mo_launched +
+  category +
+  goal +
+  description_length +
+  reward_length, data = train)
 
 summary(tree)
 prp(tree, extra = 1, box.palette = "auto")
@@ -123,3 +85,101 @@ mean(test$funded)
 mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
 
 ```
+
+##Classification Model
+Our final task in text analysis was to propose a mechanism for predictive binary classification of project success or failure based on project description.
+
+To prepare to fit the model, we considered both unigrams (single terms) and bigrams and filtered for words that appear in at least 500 project descriptions. We calculated tf-idf and formatted the results in a document-term matrix. We also created train and test datasets based on an 80/20% split of the data.
+
+```{r include=FALSE, eval=FALSE}
+library(naivebayes)
+library(ranger)
+```
+
+```{r include=FALSE, eval=FALSE}
+# Create data frame for model
+db_text_model <- db_cleaned %>%
+  mutate(funded = state == "successful",
+         text = str_replace_all(full_description, " ?(f|ht)tp(s?)://(.*)[.][a-z]+", "")) %>%
+  select(project_id, funded, text)
+
+# Unnest words by unigram and bigrams
+# Count word frequency
+db_counts <- map_df(1:2,
+                      ~ unnest_tokens(db_text_model, word, text, 
+                                      token = "ngrams", n = .x)) %>%
+  anti_join(stop_words, by = "word") %>%
+  count(project_id, word, sort = TRUE)
+
+# Filter out n-grams that occur in fewer than 500 documents
+words_500 <- db_counts %>%
+  group_by(word) %>%
+  summarise(n = n()) %>% 
+  filter(n >= 500) %>%
+  select(word)
+
+# Calculate tf-idf
+# Format into document-term matrix
+db_dtm <- db_counts %>%
+  right_join(words_500, by = "word") %>%
+  bind_tf_idf(word, project_id, n) %>%
+  cast_dtm(project_id, word, tf_idf)
+
+meta <- tibble(project_id = as.numeric(dimnames(db_dtm)[[1]])) %>%
+  left_join(db_text_model[!duplicated(db_text_model$project_id), ], by = "project_id")
+
+# Separate data into train and test sets based on 80%/20% split
+# Create train and test datasets
+n <- dim(meta)[1]
+trainIndex <- sample.int(n, size = floor(0.8*n))
+db_text_train <- meta[trainIndex,]
+db_text_test <- meta[-trainIndex,]
+response_train <- meta$funded[trainIndex]
+```
+
+We tested Naïve Bayes and Random Forest classification models.
+```{r include=FALSE, eval=FALSE}
+trctrl <- trainControl(method = "none")
+
+# Naïve Bayes
+nb_model <- train(x = db_text_train,
+                 y = as.factor(response_train),
+                method = "naive_bayes",
+               trControl = trctrl,
+                  tuneGrid = data.frame(laplace = 0, usekernel = FALSE, adjust = FALSE))
+
+nb_pred <- predict(nb_model, newdata = db_text_test)
+
+nb_cm <- confusionMatrix(nb_pred, meta[-trainIndex, ]$funded)
+nb_cm
+
+# Random Forest
+rf_model <- train(x = db_text_train, 
+                  y = as.factor(response_train), 
+                  method = "ranger",
+                  trControl = trctrl,
+                  tuneGrid = data.frame(mtry = floor(sqrt(dim(db_text_train)[2])),
+                                        splitrule = "gini",
+                                        min.node.size = 1))
+
+rf_pred <- predict(rf_model, newdata = db_text_test)
+
+rf_cm <- confusionMatrix(rf_pred, meta[-trainIndex, ]$funded)
+rf_cm
+
+# Comparison
+model_results <- rbind(nb_cm$overall, rf_cm$overall) %>%
+  as.data.frame() %>%
+  mutate(model = c("Naive-Bayes", "Random forest"))
+
+model_results %>%
+  ggplot(aes(model, Accuracy)) +
+  geom_point() +
+  ylim(0, 1) +
+  geom_hline(yintercept = model_results$AccuracyNull[1], color = "red")
+```
+
+```{r include=FALSE, eval=FALSE}
+rm(db_text_model, db_counts, words_500, db_dtm, meta, n, trainIndex, db_text_train, db_text_train, response_train, nb_model, nb_pred, nb_cm, rf_model, rf_pred, rf_cm, model_results)
+```
+

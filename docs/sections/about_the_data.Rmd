@@ -3,7 +3,7 @@ title: "About The Data"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
@@ -53,36 +53,36 @@ dictionary$description <- c("Binary indication if the project was successful or 
 # Populate third column the variable type
 dictionary$type <- c(sapply(df_engr, class))
   
-# Manually input values in fourth column
-dictionary$values <- c("1 successful; 0 failed",
-                       c(min(df_engr$comments_count), max(df_engr$comments_count)),
-                       c(min(df_engr$goal), max(df_engr$goal)),
-                       c(min(df_engr$updates_count), max(df_engr$updates_count)),
-                       c(min(df_engr$backers_count), max(df_engr$backers_count)),
-                       "N/A",
-                       c(min(df_engr$campaign_duration), max(df_engr$campaign_duration)),
-                       c(min(df_engr$avg_contribution), max(df_engr$avg_contribution)),
-                       c(min(df_engr$percent_funded), max(df_engr$percent_funded)),
-                       "1 spotlight; 0 no spotlight",
-                       "1 selected; 0 not selected",
-                       "1 US; 0 other country",
-                       "1 at least one link to social media provided; 0 no links to social media",
-                       "1 link to creator Facebook; 0 no link",
-                       "1 link to creator Twitter; 0 no link",
-                       "1 link to creator YouTube; 0 no link",
-                       c(min(df_engr$social_media_count), max(df_engr$social_media_count)),
-                       "1 has photo; 0 none",
-                       "1 has video; 0 none",
-                       c(min(df_engr$reward_length), max(df_engr$reward_length)),
-                       c(min(df_engr$description_length), max(df_engr$description_length)),
-                            "Date of project launch (yyyy-mm-dd)",
-                            "Month and year of project launch (mm-yyyy)",
-                            "Year of project launch (yyyy)",
-                            "Month of project launch (mm)",
-                            "Factor assigned to goal amounts, by ventiles",
-                            "Factor assigned to full description lengths, by deciles",
-                            "Factor assigned to reward description lengths, by deciles",
-                            "One of 15 names describing of the project category")
+# # Manually input values in fourth column
+# dictionary$values <- c("1 successful; 0 failed",
+#                        c(min(df_engr$comments_count), max(df_engr$comments_count)),
+#                        c(min(df_engr$goal), max(df_engr$goal)),
+#                        c(min(df_engr$updates_count), max(df_engr$updates_count)),
+#                        c(min(df_engr$backers_count), max(df_engr$backers_count)),
+#                        "N/A",
+#                        c(min(df_engr$campaign_duration), max(df_engr$campaign_duration)),
+#                        c(min(df_engr$avg_contribution), max(df_engr$avg_contribution)),
+#                        c(min(df_engr$percent_funded), max(df_engr$percent_funded)),
+#                        "1 spotlight; 0 no spotlight",
+#                        "1 selected; 0 not selected",
+#                        "1 US; 0 other country",
+#                        "1 at least one link to social media provided; 0 no links to social media",
+#                        "1 link to creator Facebook; 0 no link",
+#                        "1 link to creator Twitter; 0 no link",
+#                        "1 link to creator YouTube; 0 no link",
+#                        c(min(df_engr$social_media_count), max(df_engr$social_media_count)),
+#                        "1 has photo; 0 none",
+#                        "1 has video; 0 none",
+#                        c(min(df_engr$reward_length), max(df_engr$reward_length)),
+#                        c(min(df_engr$description_length), max(df_engr$description_length)),
+#                             "Date of project launch (yyyy-mm-dd)",
+#                             "Month and year of project launch (mm-yyyy)",
+#                             "Year of project launch (yyyy)",
+#                             "Month of project launch (mm)",
+#                             "Factor assigned to goal amounts, by ventiles",
+#                             "Factor assigned to full description lengths, by deciles",
+#                             "Factor assigned to reward description lengths, by deciles",
+#                             "One of 15 names describing of the project category")
 
 print(dictionary)
 rm(dictionary)
