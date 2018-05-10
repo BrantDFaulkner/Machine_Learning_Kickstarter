@@ -12,7 +12,7 @@ __Did machine learning help us predict which Kickstarter projects would be funde
 
 __Did we find any useful advice for soon to be Kickstarter creators?__
 
-##[Dive into our full report to find out!](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
+__[Dive into our full report to find out!](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)__
 
 
 
