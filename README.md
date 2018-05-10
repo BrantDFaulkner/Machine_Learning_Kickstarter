@@ -1,9 +1,22 @@
 
 <img src="img/gies.png" align="right" width="200"/>
 
-# Machine Learning Kickstarter
+## Machine Learning Kickstarter
 > _Independent Study in Business Data Analytics_
 
+We are just finishing our MBAs at Illinois Gies College of Business, with a concentration in Business Data Analytics. We chose this project because we knew it would push us past the skills we have learned in the classroom and hopefully discover some new business insights.
+
+Did machine learning help us predict which Kickstarter projects would be funded?
+
+Did we find any useful advice for soon to be Kickstarter creators?
+
+[Dive into our full report to find out!](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
+
+
+
+## Meet The Creators
+
+### Brant D Faulkner
 
 <img src="img/brant.jpg" align="left" width="150"/>
 
@@ -21,5 +34,3 @@ Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/b
 I love group fitness. I guess data is cool too.
 
 Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/courtneymarieallen/)!
-
-Check out the [Project Report](https://brantdfaulkner.github.io/Machine_Learning_Kickstarter/)
