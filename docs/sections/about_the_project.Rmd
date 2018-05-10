@@ -10,6 +10,8 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # About the Project
 
+## Croudfunding
+
 The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
 
 Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovations on a public platform.  
@@ -22,3 +24,11 @@ From this independent study course, I expect to:
 * Apply statistical analysis techniques to describe trends,
 * Construct a model to predict crowdfunding success, and
 * Prescribe best practices for entrepreneurs to leverage crowdfunding.
+
+## Data Collection and Cleaning
+
+Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
+
+Of these projects, possible outcome states included failed, succesful, suspended, canceled, and purged. We excluded 1,246 projects with suspended, canceled, or purged outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the amount pledged (e.g., state is listed as failed when the amout pledged exceeded the goal). The final dataset for analysis contained 49,350 projects.
+
+Of the original 120 variables, 41 contained meaningful information for analyses. Selecting from, transforming, and performing additional computations resulted in 29 variables used in subsequent exploratory analysis and machine learning. These variables are described in the Data Dictionary below.
