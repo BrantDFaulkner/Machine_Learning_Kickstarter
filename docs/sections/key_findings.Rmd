@@ -5,6 +5,19 @@ output: html_document
 
 # Key Findings
 
-Kickstarter is AWESOME!
+## `percent_funded`
+Non-normal distribution shows that most projects over ~75% of their goal wind up being successful. There may be outside manipulation happening due to Kickstarter promotions of projects that are near their goals, or personal donations by the creators and/or creators personal connections.
 
-I can use Github!
+```{r echo=FALSE}
+
+df_filtered_by_percent_funded <- df_engr %>%
+  filter(!is.na(percent_funded) & percent_funded <= 400)
+
+# Non-normal distribution
+df_filtered_by_percent_funded %>% 
+  ggplot(aes(x = percent_funded)) + 
+  geom_histogram(fill = "#332288")
+
+#Clean up
+rm(df_filtered_by_percent_funded)
+```
