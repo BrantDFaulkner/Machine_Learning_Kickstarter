@@ -12,7 +12,7 @@
 I enjoyed taking on a data analytics project in the _wild_. Building a web scraper in Python and designing a custom database from scratch to get the ball rolling!
 
 Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/brantdfaulkner/)!
----
+
 
 ### Courtney Marie Allen
 <img src="img/courtney.jpg" align="left" width="150"/>
