@@ -9,82 +9,102 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Data Dictionary
 
-```{r}
+```{r echo=FALSE}
 #Create data frame
 dictionary <- as.data.frame(matrix(0, nrow = 29, ncol = 4, 
-                                   dimnames = list(NULL, c("name", "description", "type", "values"))))
+                                   dimnames = list(NULL, c("Name", "Description", "Type", "Values"))))
 
 # Populate first column with variable names from df_engr
-dictionary$name <- c(colnames(df_engr))
+dictionary$Name <- c(colnames(df_engr))
 
 # Manually write definitions
-dictionary$description <- c("Binary indication if the project was successful or failed.
-                            Successful projects match or exceed their goal on or before the deadline",
-                            "Number of comments Kickstarter users post on a project page during the campaign",
-                            "Goal amount specified at the beginning of the campaign, in local currency",
-                            "Number of times the project page was updated during the campaign",
+dictionary$Description <- c("Amount pledged compared to goal by deadline",
+                            "Number of comments users post during campaign",
+                            "Goal set at beginning of campaign, in local currency",
+                            "Number of times page was updated during campaign",
                             "Number of backers that contributed to the project",
                             "Text description of the project",
-                            "Length of the campaign from launch to deadline, in days",
+                            "Days between launch and deadline",
                             "Mean amount pledged per backer, in local currency",
                             "Percent of goal received (%)",
-                            "Binary variable indicating ex post facto variable that features funded projects",
-                            "Binary variable indicating staff selection to receive “Projects We Love” badge, 
-                            which are prominantly featured",
-                            "Binary variable indicating location in the US (1) or in another country (0)",
-                            "Binary variable indicating if any links to creator's social media were provided",
-                            "Binary variable indicating if creator linked to Facebook",
-                            "Binary variable indicating if creator linked to Twitter",
-                            "Binary variable indicating if creator linked to YouTube",
-                            "Counts the number of links to social media provided by the creator",
-                            "Binary variable indicating if the project page had a photo",
-                            "Binary variable indicating if the project page had a video",
-                            "Number of characters describing the reward structure for backers",
-                            "Number of characters in the full project description",
+                            "If successful, indicates if project is featured",
+                            "Staff selected to receive 'Projects We Love' badge",
+                            "Indicates location in the US or in another country",
+                            "Indicates if creator provided any links to social media",
+                            "Indicates if creator linked to Facebook",
+                            "Indicates if creator linked to Twitter",
+                            "Indicates if creator linked to YouTube",
+                            "Number of social media links provided by creator",
+                            "Indicates if the project page had a photo",
+                            "Indicates if the project page had a video",
+                            "Number of characters in reward structure description",
+                            "Number of characters in full project description",
                             "Date of project launch (yyyy-mm-dd)",
                             "Month and year of project launch (mm-yyyy)",
                             "Year of project launch (yyyy)",
                             "Month of project launch (mm)",
-                            "Factor assigned to goal amounts, by ventiles",
-                            "Factor assigned to full description lengths, by deciles",
-                            "Factor assigned to reward description lengths, by deciles",
-                            "One of 15 names describing of the project category")
+                            "Ventile assigned to goal",
+                            "Decile assigned to full description length",
+                            "Decile assigned to reward description length",
+                            "One of 15 buckets categorizing project field")
 
 # Populate third column the variable type
-dictionary$type <- c(sapply(df_engr, class))
+dictionary$Type <- c(sapply(df_engr, class))
+# Fix some variable types
+dictionary[1,3] <- "factor"
+dictionary[7,3] <- "numeric"
+dictionary[10,3] <- "factor"
+dictionary[11,3] <- "factor"
+dictionary[12,3] <- "factor"
+dictionary[13,3] <- "factor"
+dictionary[14,3] <- "factor"
+dictionary[15,3] <- "factor"
+dictionary[16,3] <- "factor"
+dictionary[17,3] <- "integer"
+dictionary[18,3] <- "factor"
+dictionary[19,3] <- "factor"
+dictionary[23,3] <- "Date"
+dictionary[24,3] <- "Date"
+dictionary[25,3] <- "Date"
   
-# # Manually input values in fourth column
-# dictionary$values <- c("1 successful; 0 failed",
-#                        c(min(df_engr$comments_count), max(df_engr$comments_count)),
-#                        c(min(df_engr$goal), max(df_engr$goal)),
-#                        c(min(df_engr$updates_count), max(df_engr$updates_count)),
-#                        c(min(df_engr$backers_count), max(df_engr$backers_count)),
-#                        "N/A",
-#                        c(min(df_engr$campaign_duration), max(df_engr$campaign_duration)),
-#                        c(min(df_engr$avg_contribution), max(df_engr$avg_contribution)),
-#                        c(min(df_engr$percent_funded), max(df_engr$percent_funded)),
-#                        "1 spotlight; 0 no spotlight",
-#                        "1 selected; 0 not selected",
-#                        "1 US; 0 other country",
-#                        "1 at least one link to social media provided; 0 no links to social media",
-#                        "1 link to creator Facebook; 0 no link",
-#                        "1 link to creator Twitter; 0 no link",
-#                        "1 link to creator YouTube; 0 no link",
-#                        c(min(df_engr$social_media_count), max(df_engr$social_media_count)),
-#                        "1 has photo; 0 none",
-#                        "1 has video; 0 none",
-#                        c(min(df_engr$reward_length), max(df_engr$reward_length)),
-#                        c(min(df_engr$description_length), max(df_engr$description_length)),
-#                             "Date of project launch (yyyy-mm-dd)",
-#                             "Month and year of project launch (mm-yyyy)",
-#                             "Year of project launch (yyyy)",
-#                             "Month of project launch (mm)",
-#                             "Factor assigned to goal amounts, by ventiles",
-#                             "Factor assigned to full description lengths, by deciles",
-#                             "Factor assigned to reward description lengths, by deciles",
-#                             "One of 15 names describing of the project category")
+# Manually input values in fourth column
+dictionary$Values <- list("0: failed; 1: successful",
+                          paste(min(df_engr$comments_count), "-", max(df_engr$comments_count)),
+                          paste(min(df_engr$goal), "-", max(df_engr$goal)),
+                          paste(min(df_engr$updates_count), "-", max(df_engr$updates_count)),
+                          paste(min(df_engr$backers_count), "-", max(df_engr$backers_count)),
+                          "N/A",
+                          paste(min(as.numeric(df_engr$campaign_duration)), "-", 
+                                as.numeric(max(df_engr$campaign_duration))),
+                          paste(min(df_engr$avg_contribution, na.rm = TRUE), "-",
+                                max(df_engr$avg_contribution, na.rm = TRUE)),
+                          paste(min(df_engr$percent_funded), "-", max(df_engr$percent_funded)),
+                          "0: no spotlight; 1: spotlight",
+                          "0: no badge; 1: 'Projects We Love' badge",
+                          "0: other countries; 1: USA",
+                          "0: no links to social media; 1: one or more links provided",
+                          "0: no Facebook link; 1: Facebook link provided",
+                          "0: no Twitter link; 1: Twitter link provided",
+                          "0: no YouTube link; 1: YouTube link provided",
+                          levels(df_engr$social_media_count),
+                          "0: no photo; 1: has photo",
+                          "0: no video; 1: has video",
+                          paste(min(df_engr$reward_length), "-", max(df_engr$reward_length)),
+                          paste(min(df_engr$description_length), "-", max(df_engr$description_length)),
+                          paste(min(df_engr$date_launched), "to", max(df_engr$date_launched)),
+                          paste(min(df_engr$mo_yr_launched), "to", max(df_engr$mo_yr_launched)),
+                          paste(min(df_engr$yr_launched), "-", max(df_engr$yr_launched)),
+                          paste(min(df_engr$mo_launched), "-", max(df_engr$mo_launched)),
+                          levels(df_engr$goal_20),
+                          levels(df_engr$description_length_10),
+                          levels(df_engr$reward_length_10),
+                          "art, comics, dance, design, fashion, food, film&video, games, journalism, music,
+                          photography, technology, theater, publishing, crafts")
 
 print(dictionary)
+```
+
+```{r include=FALSE}
 rm(dictionary)
 ```
 
