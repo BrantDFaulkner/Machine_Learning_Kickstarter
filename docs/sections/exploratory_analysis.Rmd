@@ -20,10 +20,10 @@ theme_update(plot.title = element_text(hjust = 0.5))
 
 
 ## Ex Post Facto
-Ex Post Facto variables that are generated after the start of the project. These are interesting to examine and can provide valuable insight into Kickstarter, however, they are not appropriate to use in our predictive models as they are pseudo outcome variables. Some, such as `comments`, can provide direction to a project creator on what to do mid-project to increase their cahnce of funding. 
+> Ex Post Facto variables that are generated after the start of the project. These are interesting to examine and can provide valuable insight into Kickstarter, however, they are not appropriate to use in our predictive models as they are pseudo outcome variables. Some, such as `comments`, can provide direction to a project creator on what to do mid-project to increase their cahnce of funding. 
 
 ### `backers_count`
-`backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`.
+> `backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`.
 
 ```{r echo = FALSE}
 df_backers = data.frame(funded = df_engr$funded, backers_count = df_engr$backers_count)
@@ -42,8 +42,9 @@ df_backers %>%
 rm(df_backers)
 ```
 
+***
 ### `comments_count`
-The vast majority of projects received fewer than 20 comments. Chance of Funding increases substantially as comments increases. The most notable feature is receiving as few as two comments can increase Chance of Funding by 30%+.  We hypothesize that a good project has a causal relationship with more comments. The correlation is enough to advise any creator to make a concerted effort to start a conversation in the comments section of their project. 
+> The vast majority of projects received fewer than 20 comments. Chance of Funding increases substantially as comments increases. The most notable feature is receiving as few as two comments can increase Chance of Funding by 30%+.  We hypothesize that a good project has a causal relationship with more comments. The correlation is enough to advise any creator to make a concerted effort to start a conversation in the comments section of their project. 
 
 ```{r echo = FALSE}
 df_commments = data.frame(funded = df_engr$funded, comments_count = db_cleaned$comments_count)
@@ -61,10 +62,11 @@ df_commments %>%
 rm(df_commments)
 ```
 
+***
 ### `updates_count`
-Another solid indicator of funding `updates_count`. Just as with the other ex post facto variables, the causality is likely reversed as creators are probably more willing to update a project that is getting traction. Given the continued improvements throughout the deciles, it is surely worth regularly providing updates for your project to finish off the funding, or possibly move well past the 100% funded mark. 
+> Another solid indicator of funding `updates_count`. Just as with the other ex post facto variables, the causality is likely reversed as creators are probably more willing to update a project that is getting traction. Given the continued improvements throughout the deciles, it is surely worth regularly providing updates for your project to finish off the funding, or possibly move well past the 100% funded mark. 
 
-```{r}
+```{r echo = FALSE}
 df_updates = data.frame(funded = df_engr$funded, updates_count = df_engr$updates_count)
 df_updates$uc_10 = cut(df_updates$updates_count, breaks = unique(quantile(df_updates$updates_count, seq(0, 1, by = .1))), include.lowest = TRUE)
 
@@ -81,14 +83,24 @@ df_updates %>%
 rm(df_updates)
 ```
 
+***
+### `spotlight`
+> We were surprised to find a variable with 100% predictive power occurring in over 20,000 projects. We dug deeper and found that `spotlight` denotes projects to be featured on Kickstarter's recently funded page! [Kickstarter Spotlight](https://www.kickstarter.com/spotlight)
+
+```{r echo=FALSE}
+df_engr %>%
+  group_by(spotlight) %>%
+    summarise(n(), mean(funded)) %>%
+  ungroup(spotlight)
+```
 
 ## Day Zero
 Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
 
-##$goal
+### `goal`
 One of the most obvious, and ultimately significant predicters is `goal`. It shows a clear downward trend in funding success as the amount increases. While this is intuitive, it is worth noting that it does not appear linear. For this reason, we used the quantile function to account for this distribution. 
 
-```{r}
+```{r echo = FALSE}
 df_engr %>% 
   ggplot(aes(x = goal_20, y = funded)) +
   stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
@@ -121,7 +133,6 @@ Least successful parent categories (only considered if n > 100):
 ```{r echo = FALSE}
 # By main category
 # 15 unique categories
-
 
 df_engr %>%
   group_by(category) %>%
@@ -206,7 +217,7 @@ df_engr %>%
 
 ```
 
-###$country
+### `country`
 The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects. We believe two factors drive this difference. First, Kickstarter is a U.S. based company and will, therefore, better meet the needs of its customers. Secondly, crowdfunding requires a critical mass of people to support a project ecosystem. As backer are most likely to fund projects in their country, any new regional expansions will have lower success rates while the critical mass develops.  
 
 ```{r echo=FALSE}
@@ -228,7 +239,7 @@ rm(df_country)
 ### `photo_key`
 There are very few projects that do not at least have a photo. Consequently, a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
 
-```{r}
+```{r echo=FALSE}
 df_engr %>%
   group_by(photo_key) %>%
     summarise(n(), mean(funded)) %>%
@@ -238,50 +249,8 @@ t.test(funded ~ photo_key, data = df_engr)
 ```
 
 
-
-
-
-##$spotlight
-Spotlight is an ex post facto variable that features funded projects.
-[Kickstarter Spotlight](https://www.kickstarter.com/spotlight)
-
-```{r}
-df_engr %>%
-  group_by(spotlight) %>%
-    summarise(n(), mean(funded)) %>%
-  ungroup(spotlight)
-```
-
-##$staff_pick
-This flag denotes projectsthat have received the "Projects We Love" badge and get prominantly features on the website, newsletters, and blogs. Kickstarter staff clearly has a great eye for promossing projects and/or some strong marketing impact.
-[Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
-
-```{r}
-df_engr %>%
-  group_by(staff_pick) %>%
-    summarise(n(), mean(funded)) %>% 
-  ungroup(staff_pick)
-```
-
-##$funded
-On average: projects that are funded far exceed their goal amount; the average contribution per backer is higher and there are more backers; and the goal amount tends to be significantly lower.
-
-```{r}
-df_engr %>%
-  group_by(funded) %>%
-  summarise(n(),
-            mean(percent_funded, na.rm = TRUE), 
-            mean(avg_contribution, na.rm = TRUE), 
-            mean(goal, na.rm = TRUE),
-            mean(backers_count), 
-            median(backers_count), 
-            max(backers_count), 
-            mean(avg_contribution, na.rm = TRUE)) %>%
-  ungroup(funded)
-```
-
-##$video_status
-T test shows having a video to statistically significantly impact the success of the project. 
+### `video_status`
+We hypothesized that `video_status` would be a powerful predictor as it is a proxy for whether or not the project has a video. We can see that the t-test 'video_status` to statistically significantly impact the success of the project. 
 
 ```{r}
 df_engr %>%
@@ -314,56 +283,41 @@ df_engr %>%
     summarise(n(), mean(funded)) %>%
   ungroup(youtube)
 
-#social_media
-df_engr %>%
-  group_by(social_media) %>%
-    summarise(n(), mean(funded)) %>%
-  ungroup(social_media)
-
-lm_social_media <- lm(funded ~ social_media, data = df_engr)
-summary(lm_social_media)
-
-
 #social_media_count
 df_engr %>%
   group_by(social_media_count) %>%
     summarise(n(), mean(funded)) %>%
   ungroup(social_media_count)
 
-lm_social_media_count <- lm(funded ~ social_media_count, data = df_engr)
-summary(lm_social_media_count)
-
 df_engr %>% 
   ggplot(aes(x = social_media_count, y = funded)) +
-  stat_summary(geom = "bar", fun.y = "mean") +
-  theme_minimal()
+  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
+  labs(title = "Funding By Social Media Count",
+       x="Social Media Count",
+       y="Chance of Funding")
 
-#Clean up
-rm(lm_social_media_count, lm_social_media)
 ```
 
-##$campaign_duration
+### `campaign_duration`
 Interestingly, campaign duration has an inverse relationship to the likelihood of receiving funding; longer campaign are associated with higher failure rates.
 
 ```{r}
-#Linear Model
-#not significant
-lm_length <- glm(percent_funded ~ campaign_duration, data = df_engr)
-summary(lm_length)
 
-#Logit
-#significant
-logit_length <- glm(funded ~ campaign_duration, data = df_engr, family=binomial(link='logit'))
-summary(logit_length)
+df_camp_dur = data.frame(funded = df_engr$funded, campaign_duration = df_engr$campaign_duration)
+df_camp_dur$cd_10 = cut(df_camp_dur$campaign_duration, breaks = unique(quantile(df_camp_dur$campaign_duration, seq(0, 1, by = .1))), include.lowest = TRUE)
 
-df_engr %>%
-  ggplot() +
-  theme_minimal() + 
-  ggtitle("$campaign_length Logistic Model") +
-  geom_point(aes(x=campaign_duration, y=funded), colour = "black") +
-  geom_point(aes(x=campaign_duration, y=logit_length$fitted.values), colour = "red")
+df_camp_dur %>% 
+  group_by(cd_10) %>%
+  summarise(avg_funded = mean(funded)) %>%
+  ggplot(aes(x = cd_10, y = avg_funded)) +
+  geom_bar(stat="identity", fill = "#332288") +
+  labs(title = "Funding By Campaign Duration",
+       x="Number of Comments",
+       y="Chance of Funding")
 
-rm(lm_length, logit_length)
+rm(df_camp_dur)
+
+
 ```
 
 ##$avg_contribution
@@ -421,10 +375,7 @@ df_engr %>%
   theme_minimal() +
   theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 
-
 ```
-
-
 
 ## Date variables
 ```{r}
@@ -454,7 +405,7 @@ More granular location variables would require more cleaning and may produce reg
 * `location_name`
 * `location_state`
 * `location_type`
-* 'fx_Rate`
+* `fx_Rate`
 * `profile_blurb`
 * `profile_state`
 
@@ -528,4 +479,21 @@ df_country %>%
   ungroup(location_type)
 
 rm(df_country)
+```
+
+```{r include=FALSE, eval=FALSE}
+##$funded
+On average: projects that are funded far exceed their goal amount; the average contribution per backer is higher and there are more backers; and the goal amount tends to be significantly lower.
+
+df_engr %>%
+  group_by(funded) %>%
+  summarise(n(),
+            mean(percent_funded, na.rm = TRUE), 
+            mean(avg_contribution, na.rm = TRUE), 
+            mean(goal, na.rm = TRUE),
+            mean(backers_count), 
+            median(backers_count), 
+            max(backers_count), 
+            mean(avg_contribution, na.rm = TRUE)) %>%
+  ungroup(funded)
 ```
