@@ -1,5 +1,7 @@
 # Machine Learning Kickstarter
 
+<img src="img/gies.png" align="left" />
+
 Independent Study
 
 Creators:
