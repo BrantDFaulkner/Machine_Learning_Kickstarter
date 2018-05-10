@@ -9,10 +9,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 #Exploratory Analysis
 
-##$backers_count
-Backers count is a very strong predictor of success. We can see from the the logistic model that after ~75 backers succcess is almost guranteed. However, we are focusing on variables at the begining of a project.
+## Ex Post Facto
+Ex Post Facto variables are those that generally only exist at the end of the project. These are interesting to examine and can provide valuable insight into Kickstarter, however, they are not appropriate to use in our predictive models as they are pseudo outcome variables. 
 
-```{r}
+### backers_count
+`backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`. 
+
+```{r echo = FALSE}
 df_backers = data.frame(funded = df_engr$funded, backers_count = df_engr$backers_count)
 df_backers$df_bc_20 = cut(df_backers$backers_count, breaks = unique(quantile(df_backers$backers_count, seq(0, 1, by = .05))), include.lowest = TRUE)
 
@@ -34,8 +37,11 @@ rm(df_backers)
 
 ```
 
-##Category variables
-$category_parent_id, $category_slug
+## Day Zero
+Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
+
+
+### category
 - Some categories never fail in this dataset (only considered if n > 50):
   - design/product design (1098 projects)
   - film & video/documentary (2202 projects)
@@ -54,23 +60,24 @@ $category_parent_id, $category_slug
 # By main category
 # 15 unique categories
 
+
 df_engr %>%
   group_by(category) %>%
   summarise(count = n(), 
             success_rate = round(mean(funded)*100, 2), 
-            mean(goal, na.rm = TRUE), 
-            min(percent_funded, na.rm = TRUE), 
-            median(percent_funded, na.rm = TRUE), 
-            max(percent_funded, na.rm = TRUE),
-            mean(percent_funded, na.rm = TRUE), 
-            mean(backers_count), 
-            min(backers_count), 
-            median(backers_count), 
-            max(backers_count), 
-            mean(avg_contribution, na.rm = TRUE), 
-            min(avg_contribution, na.rm = TRUE), 
-            median(avg_contribution, na.rm = TRUE), 
-            max(avg_contribution, na.rm = TRUE)) %>%
+            avg_goal = mean(goal, na.rm = TRUE), 
+            #min(percent_funded, na.rm = TRUE), 
+            med_perc_funded = median(percent_funded, na.rm = TRUE), 
+            #max(percent_funded, na.rm = TRUE),
+            avg_perc_funded = mean(percent_funded, na.rm = TRUE), 
+            avg_backer_count = mean(backers_count), 
+            #min(backers_count), 
+            med_backer_count = median(backers_count), 
+            #max(backers_count), 
+            avg_contribution = mean(avg_contribution, na.rm = TRUE), 
+            #min(avg_contribution, na.rm = TRUE), 
+            med_contribution = median(avg_contribution, na.rm = TRUE)) %>%
+            #max(avg_contribution, na.rm = TRUE)) %>%
   arrange(desc(count)) %>%
   ungroup(category)
 
