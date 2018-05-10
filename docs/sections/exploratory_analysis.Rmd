@@ -61,6 +61,27 @@ df_commments %>%
 rm(df_commments)
 ```
 
+### `updates_count`
+Another solid indicator of funding `updates_count`. Just as with the other ex post facto variables, the causality is likely reversed as creators are probably more willing to update a project that is getting traction. Given the continued improvements throughout the deciles, it is surely worth regularly providing updates for your project to finish off the funding, or possibly move well past the 100% funded mark. 
+
+```{r}
+df_updates = data.frame(funded = df_engr$funded, updates_count = df_engr$updates_count)
+df_updates$uc_10 = cut(df_updates$updates_count, breaks = unique(quantile(df_updates$updates_count, seq(0, 1, by = .1))), include.lowest = TRUE)
+
+df_updates %>% 
+  group_by(uc_10) %>%
+  summarise(avg_funded = mean(funded)) %>%
+  ggplot(aes(x = uc_10, y = avg_funded)) +
+    geom_bar(stat="identity", fill = "#332288") +
+    labs(title = "Funding By Updates",
+         x="Number of Updates",
+         y="Chance of Funding")
+  
+#Clean Up
+rm(df_updates)
+```
+
+
 ## Day Zero
 Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
 
@@ -131,7 +152,7 @@ df_engr %>%
 ```
 
 #### Frequency by `category`
-  The distribution of projects by category shows Kickstarter has an intense focus on creative projects. We hypothesize that the minimal appearance of some categories suggests that Kickstarter's classification system tends to favor large, general grouping. It may also be arbitrary in some instances as many `dance` and `photography` projects could readily be placed in `art`.
+The distribution of projects by category shows Kickstarter has an intense focus on creative projects. We hypothesize that the minimal appearance of some categories suggests that Kickstarter's classification system tends to favor large, general grouping. It may also be arbitrary in some instances as many `dance` and `photography` projects could readily be placed in `art`.
 
 ```{r echo = FALSE}
 df_engr %>% 
@@ -146,7 +167,7 @@ df_engr %>%
 ```
 
 #### Funding by `category`
-  The chance of funding does not follow a similar pattern to the category frequency distribution. In fact, the sparsely populated categories have near perfect funding rates. Further investigation into these anomalies, such as exploring correlation to variables such as `spotlight` may reveal a selection bias for obscure classification. 
+The chance of funding does not follow a similar pattern to the category frequency distribution. In fact, the sparsely populated categories have near perfect funding rates. Further investigation into these anomalies, such as exploring correlation to variables such as `spotlight` may reveal a selection bias for obscure classification. 
 
 ```{r echo = FALSE}
 df_engr %>% 
@@ -159,63 +180,36 @@ df_engr %>%
        y="Chance of Funding")
 ```
 
+### 'launched_at'
+The number of projects increased exponentially 2009 - 2012 and seemed to be increasing more gradually after 2012. We only collected data through December of 2013 and anticipate continued growth for subsequent years.
 
-
-
-
-
-##$launched_at
-The number of projects increased exponentially 2009 - 2012 and seems to be increasing more gradually after 2012.
-The dataset has only partial data for December 2013.
-
-```{r}
-df_engr %>%
-  group_by(mo_yr_launched)  %>% 
-  summarise(n(), 
-            success_rate = round(mean(funded)*100, 2),
-            mean(percent_funded, na.rm = TRUE), 
-            mean (avg_contribution, na.rm = TRUE)) %>%
-  ungroup(mo_yr_launched)
-
+```{r echo=FALSE}
 df_engr %>% 
   ggplot(aes(x = yr_launched, y = funded)) +
   geom_bar(stat="identity", fill = "#332288") +
     labs(
     title = "Project Launch By Year",
     x="Year", 
-    y="Projects Launched") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+    y="Projects Launched")
+```
 
-df_engr %>% 
-  ggplot(aes(x = yr_launched, y = funded)) +
-  stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
-    labs(
-    title = "Funding By Year",
-    x="Year", 
-    y="Chance of Funding") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+We explored fundy by `mo_launched` to see if seasonality impacts Kickstarter. The most dramatic dips occur in May and December. This is consistent with our understanding of financial markets in general... they slow down early summer and have much lower volume around the holiday season.
 
+```{r echo=FALSE}
 df_engr %>% 
   ggplot(aes(x = mo_launched, y = funded)) +
   stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
     labs(
-    title = "Funding By Goal",
-    x="Goal Amount", 
-    y="Chance of Funding") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
-
-summary(glm(funded ~ mo_launched, data = df_engr))
+    title = "Funding By Month Launched",
+    x="Month Launched", 
+    y="Chance of Funding")
 
 ```
 
-##location variables
 ###$country
-The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects.  
+The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects. We believe two factors drive this difference. First, Kickstarter is a U.S. based company and will, therefore, better meet the needs of its customers. Secondly, crowdfunding requires a critical mass of people to support a project ecosystem. As backer are most likely to fund projects in their country, any new regional expansions will have lower success rates while the critical mass develops.  
 
-```{r}
+```{r echo=FALSE}
 df_country <- data.frame(funded = df_engr$funded, country = db_cleaned$country, usa = df_engr$usa)
 
 df_country %>%
@@ -231,8 +225,8 @@ rm(df_country)
 ```
 
 
-##$photo_key
-There are not enough zero values for prediction, and a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
+### `photo_key`
+There are very few projects that do not at least have a photo. Consequently, a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
 
 ```{r}
 df_engr %>%
@@ -243,32 +237,9 @@ df_engr %>%
 t.test(funded ~ photo_key, data = df_engr)
 ```
 
-##$pledged
-The higher the pledged amount, the more backers there are. The average contribution per backer does not seem to change much even as the amount pledged increases.
 
-```{r}
-# # Group into deciles and look as levels
-# df_filtered_by_pledged <- db_cleaned %>%
-#   filter(pledged < 200000) %>%
-#   mutate(pledged_10 = cut(pledged, 10))
-# 
-# #df_filtered_by_pledged %>%
-#   group_by(pledged_10) %>%
-#   summarise(n(), 
-#             mean(pledged), 
-#             mean(backers_count), 
-#             mean(avg_contribution, na.rm = TRUE)) %>%
-#   ungroup(pledged_10)
-# 
-# df_filtered_by_pledged %>%
-#   ggplot() + 
-#   theme_minimal() + 
-#   ggtitle("$pledged in Deciles") + 
-#   geom_histogram(aes(pledged_10), stat = "count")
-# 
-# #Clean up
-# rm(df_filtered_by_pledged)
-```
+
+
 
 ##$spotlight
 Spotlight is an ex post facto variable that features funded projects.
@@ -420,29 +391,7 @@ df_filtered_by_avg_contribution %>%
 rm(df_filtered_by_avg_contribution)
 ```
 
-##$percent_funded
-Non-normal distribution shows that most projects over ~75% of their goal wind up being successful. There may be outside manipulation happening due to Kickstarter promotions of projects that are near their goals, or personal donations by the creators and/or creators personal connections.
 
-```{r}
-# Check for NA
-anyNA(df_engr$percent_funded)
-
-mean(df_engr$percent_funded, na.rm = TRUE)
-
-df_filtered_by_percent_funded <- df_engr %>%
-  filter(!is.na(percent_funded) & percent_funded <= 400)
-
-# Box Plot
-boxplot(df_filtered_by_percent_funded$percent_funded)
-
-# Non-normal distribution
-df_filtered_by_percent_funded %>% 
-  ggplot() + 
-  geom_histogram(aes(x = percent_funded))
-
-#Clean up
-rm(df_filtered_by_percent_funded)
-```
 
 ##$description_length
 
@@ -458,12 +407,6 @@ df_engr %>%
   theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 ```
 
-##Profile variables
-$profile_blurb, $profile_state
-
-```{r}
-
-```
 
 ##$rewards
 
@@ -481,10 +424,7 @@ df_engr %>%
 
 ```
 
-##$updates_count
-```{r}
 
-```
 
 ## Date variables
 ```{r}
@@ -514,6 +454,9 @@ More granular location variables would require more cleaning and may produce reg
 * `location_name`
 * `location_state`
 * `location_type`
+* 'fx_Rate`
+* `profile_blurb`
+* `profile_state`
 
 
 ## Rejected
