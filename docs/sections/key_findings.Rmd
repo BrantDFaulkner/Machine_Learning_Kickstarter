@@ -21,3 +21,20 @@ df_filtered_by_percent_funded %>%
 #Clean up
 rm(df_filtered_by_percent_funded)
 ```
+
+
+## `staff_pick`
+This flag denotes projects that have received the "Projects We Love" badge and get prominently features on the website, newsletters, and blogs. Kickstarter staff clearly has a great eye for promising projects and/or some strong marketing impact.
+
+'staff_pick` has exciting implications for the continuation of this project. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer and therefore serves as a benchmark for our machine learning.
+
+It is important to note that we do not anticipate being able to replicate this success rate as there is a boosting effect from the marketing efforts that should increase the success rate well beyond Day Zero probabilities.
+
+[Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
+
+```{r echo=FALSE}
+df_engr %>%
+  group_by(staff_pick) %>%
+    summarise(n(), mean(funded)) %>% 
+  ungroup(staff_pick)
+```

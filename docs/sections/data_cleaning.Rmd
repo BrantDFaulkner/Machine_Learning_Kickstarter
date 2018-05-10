@@ -198,7 +198,7 @@ df_engr$backers_count <- db_cleaned$backers_count
 df_engr$full_description <- db_cleaned$full_description
 
 #Campaign Stats
-df_engr$campaign_duration = round((db_cleaned$deadline - db_cleaned$launched_at), 2)
+df_engr$campaign_duration = as.numeric(round((db_cleaned$deadline - db_cleaned$launched_at), 2))
 df_engr$avg_contribution = round((db_cleaned$pledged/db_cleaned$backers_count), 2)
 df_engr$percent_funded = round((db_cleaned$pledged/db_cleaned$goal*100), 2)
 
