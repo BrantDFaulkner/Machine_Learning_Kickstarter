@@ -1,6 +1,9 @@
-# Machine Learning Kickstarter
 
-<img src="img/gies.png" align="left" width="200" />
+<img src="img/gies.png" align="right" width="200"/>
+
+# Machine Learning Kickstarter
+> Independent Study for MBA Concentration: Business Data Analytics
+
 
 Independent Study
 
