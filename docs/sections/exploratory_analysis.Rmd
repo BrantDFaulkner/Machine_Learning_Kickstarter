@@ -106,10 +106,9 @@ df_engr %>%
   summarise(count = n()) %>%
   ggplot(aes(x = reorder(category, -count), y = count)) +
   geom_bar(stat="identity", fill = "#332288") +
-  labs(
-    title = "Frequency By Category",
-    x="Project Category", 
-    y="Number of Projects")
+  labs(title = "Frequency By Category",
+       x="Project Category",
+       y="Number of Projects")
 
 ```
 
@@ -117,16 +116,12 @@ df_engr %>%
 df_engr %>% 
   group_by(category) %>%
   summarise(count = n(), 
-            funded_rate = round(mean(funded)*100, 2)) %>%
-  arrange(desc(count)) %>%
-  ggplot(aes(x = reorder(category, -count), y = funded_rate)) +
+            avg_funded = round(mean(funded)*100, 2)) %>%
+  ggplot(aes(x = reorder(category, -count), y = avg_funded)) +
   geom_bar(stat="identity", fill = "#332288") +
-  labs(
-    title = "Funding By Category",
-    x="Project Category", 
-    y="Chance of Funding") + 
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 60, hjust = 1))
+  labs(title = "Funding By Category",
+       x="Project Category",
+       y="Chance of Funding")
 
 ```
 
