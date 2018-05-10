@@ -1,6 +1,6 @@
 # Machine Learning Kickstarter
 
-<img src="img/gies.png" align="left" />
+<img src="img/gies.png" align="left" width="200" />
 
 Independent Study
 
