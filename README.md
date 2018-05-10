@@ -4,6 +4,8 @@
 ## Machine Learning Kickstarter
 > _Independent Study in Business Data Analytics_
 
+<img src="img/kickstarter.png" align="right" width="200"/>
+
 We are just finishing our MBAs at Illinois Gies College of Business, with a concentration in Business Data Analytics. We chose this project because we knew it would push us past the skills we have learned in the classroom and hopefully discover some new business insights.
 
 Did machine learning help us predict which Kickstarter projects would be funded?
@@ -15,8 +17,6 @@ Did we find any useful advice for soon to be Kickstarter creators?
 
 
 ## Meet The Creators
-
-### Brant D Faulkner
 
 <img src="img/brant.jpg" align="left" width="150"/>
 
