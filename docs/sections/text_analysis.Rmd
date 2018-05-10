@@ -20,13 +20,16 @@ We began by transforming the strings of text in `full_description` into a data f
 * only successful projects, and
 * only failed projects.
 
+The graph below shows the words that occur over 25,000 times in the full description text of all projects.
+
 ```{r include=FALSE}
 library(tidytext)
 library(tidyr)
 library(scales)
+library(cowplot)
 ```
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(1)
 # Most frequently used words in descriptions, overall
 fd_text_tidy <- data_frame(id = db_cleaned$project_id, text = db_cleaned$full_description) %>%
@@ -59,11 +62,9 @@ fail_fd_text_tidy <- fail_fd_text %>%
 #  count(word, sort = TRUE)
 ```
 
-Next, we examined the correlation between word proportions of successful and failed project descriptions. Word proportion represents the percentage of time that a given word is used out of the total number of words in the document. In this case, the documents are the collection of all successful project descriptions and all failed project descriptions.
+Next, we examined the correlation between word proportions of successful and failed project descriptions. Word proportion represents the percentage of time that a given word is used out of the total number of words in the document. In this case, the documents are the collection of all successful project descriptions and all failed project descriptions. We observed, both visually and in terms of Pearson's correlation coefficient, that the terms used in successful and failed project descriptions were overwhelmingly similar.
 
-We observed, both visually and in terms of Pearson's correlation coefficient, that the terms used in successful and failed project descriptions were very similar.
-
-```{r}
+```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Where is there word overlap between successful and failed projects?
 set.seed(1)
 frequency <- bind_rows(mutate(success_fd_text_tidy, funded = "successful"),
@@ -95,7 +96,7 @@ rm(success_fd_text, fail_fd_text, frequency, fd_text_tidy)
 
 Another way to visualize word frequency is by constructing wordclouds, which scale the size of text of a word to match its frequency in the document relative to other words' frequencies. We constructed a wordcloud for the descriptions from the entire dataset. We were not surprised to see that "project", "kickstarter", and "goal" were among the most frequent terms used.
 
-```{r}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
 # Create a corpus
 # Transform text to lowercase, remove punctuation, remove stop words
@@ -119,7 +120,7 @@ Prior to generating the wordclouds, we also created a custom set of stop words t
 
 In the wordclouds by year, we see that music was initially the most prevalent in 2009, but film began to emerge as the predominant category 2010-2011. In 2012-2013, games appear as the biggest category. These wordclouds also give us a hint regarding the variety of projects. From 2009-2011, the wordclouds become larger and word frequency is less concentrated around the same terms. Abruptly in 2012, the projects seems to become less disparate, but in 2013 variety increases again. This suggests that the degree of project variety on kickstarter may be cyclical; this seems logical as artists and entrepreneurs in the same field turn to kickstarter after hearing about colleagues' successes. However, more years of data are needed to verify the hypothesis of three-year periodicity.
 
-```{r}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
 # Words to exclude
 exclude <- c("will", "can", "get", "make", "project", "time", "people", "kickstarter", "one", "goal", "money", "support", "help", "new", "like", "just", "first", "also", "like", "still", "really", "already", "ive", "weve", "dont", "well", "want", "need", "around", "include", "including", "two", "four", "three", "last", "thats", "youll", "currently", "others", "extra", "without", "within", "ever", "days", "months", "2012", "cant", "second", "100", "wanted", "fund", "funding", "able", "additional")
@@ -143,11 +144,14 @@ for(i in 1:length(Year)) {
     wordcloud(description_corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE)
   }
 }
+
+#plot_grid(wordcloud2009, wordcloud2010, wordcloud2011, wordcloud2012, wordcloud2013, 
+#          labels = c(2009, 2010, 2011, 2012, 2013))
 ```
 
 In the wordclouds by funding status, we observed a high degree of similarity in both terms and frequency between successful and failed projects. Books seemed more likely to fail due to the higher prevalence of "book" in the failed wordcloud. There also seemed to be more variety in the successful wordcloud, perhaps indicating richer project descriptions. However, it seems that high world frequency may not be the best delineator of successful versus failed projects.
 
-```{r}
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
 # Initialize success variables for `for` loop
 Success <- db_cleaned$state
@@ -178,9 +182,9 @@ Sometimes the best way to determine points of difference between two similar doc
 
 To see if this might be the case in our collection of successful and failed projects, we examined the term frequency-inverse document frequency (tf-idf). tf looks for terms that are common; idf decreases the weight placed on commonly used terms in the collection and increases the weight placed on words that are not commonly used in the collection (i.e., common in a few documents). To remove nonsensical words from the analysis, we only considered words with a frequency of greater than 500, which is a reasonably low cutoff in a dataset with 700,000+ unique terms.
 
-The results of this analysis suggest that board games and film are likely to be successful (dice, unlocked, filmmaker(s), boards, filmmaking, premiere). However, although the games category overall had a high success rate, it appears that games involving war and violence were less likely to receive funding (weapon, battles, security, agent), as were online games (multiplayer, server, playable, modes, animations).
+The results of this analysis suggest that board games and film are likely to be successful (dice, unlocked, filmmaker(s), expansion, boards, filmmaking, premiere). However, although the games category overall had a high success rate, it appears that games involving war and violence were less likely to receive funding (weapon, battles, security, agent), as were online games (multiplayer, server, playable, modes, animations).
 
-```{r}
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(1)
 # Combine successful and failed documents in one data frame that considers document frequency and total frequency
 funded_words <- bind_rows(mutate(success_fd_text_tidy, funded = "successful"),
@@ -254,26 +258,45 @@ poliblogPrevFit <- stm(documents = out$documents, vocab = out$vocab, K = 40, max
 
 Visualizing the results of our topic model, we see some meaningful topics emerge, some centered on the mechanisms of the platform, and others identifying product categories or subcategories.
 
+```{r echo=FALSE}
+plot(poliblogPrevFit, type = "summary", xlim = c(0, .06), text.cex = 0.5)
+```
+
 For example, Topic 1 could be labeled Funding Requests and includes terms like "help", "money", "donate", "dollar", "goal", "buck", and "reach". Topic 7 is all about the rewards provided to backers if the project is successful: "pledge", "reward", "level", "backer", "goal", and "ship."
 
-On the other hand, Topic 6 seems to describe a certain subcategory of Film & Video and could be labeled Web Series with terms like "show", "series", "episode", "season", "pilot", "web", "anime", and "comedy." Topic 24 seems to describe a subcategory of Publishing and could be labeled Periodicals with terms like "issue", "magazine", "media", "interview", "article", "content", "journal", and "print."
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Describe topics
+labelTopics(poliblogPrevFit, c(1, 7))
+
+cloud(poliblogPrevFit, topic = 1, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 7, scale = c(3, 1))
+```
+
+On the other hand, Topic 6 seems to describe a certain subcategory of Film & Video and could be labeled Web Series with terms like "show", "series", "episode", "season", "pilot", "web", "anime", and "comedy." Topic 24 seems to describe a subcategory of Journalism and could be labeled Periodicals with terms like "issue", "magazine", "media", "interview", "article", "content", "journal", and "print."
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Describe topics
+labelTopics(poliblogPrevFit, c(6, 24))
+
+cloud(poliblogPrevFit, topic = 6, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 24, scale = c(3, 1))
+```
 
 The theme of the projects is clear from some topics, although the type of project is not easily distinguished. For example, Topic 30 is about Fantasy, but could span several types of projects. The same is true of Topic 31 (Christianity), Topic 35 (Family), and Topic 39 (Outer Space).
 
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Describe topics
+labelTopics(poliblogPrevFit, c(30, 31, 35, 39))
+
+cloud(poliblogPrevFit, topic = 30, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 31, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 35, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 39, scale = c(3, 1))
+```
+
 We also visualized the correlations between the 40 topics. The green nodes indicate topics, and the dashed lines represent relatedness between topics. The length of the dashed lines indicate the degree of similarity between two topics. Our topic models are highly related to one another, both in terms of the number of connections and the distance of connections.
 
-```{r}
-set.seed(1)
-# Describe topics
-labelTopics(poliblogPrevFit, c(1:40))
-
-plot(poliblogPrevFit, type = "summary", xlim = c(0, .06), text.cex = 0.5)
-
-for (i in 1:40) {
-  cloud(poliblogPrevFit, topic = i, scale = c(3, 1))
-}
-
-# Topic correlations
+```{r echo=FALSE, warning=FALSE, message=FALSE}
 mod.out.corr <- topicCorr(poliblogPrevFit)
 plot(mod.out.corr)
 ```
