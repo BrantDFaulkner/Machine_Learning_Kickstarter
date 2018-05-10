@@ -2,9 +2,16 @@
 <img src="img/gies.png" align="right" width="200"/>
 
 # Machine Learning Kickstarter
-> Independent Study for MBA Concentration: Business Data Analytics
+> _Independent Study in Business Data Analytics_
 
 
+# About Us
+> Brant D Faulkner
+<p>
+<img src="img/brant.jpeg" align="left" width="150"/>
+</p>
+
+---
 Independent Study
 
 Creators:
