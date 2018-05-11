@@ -354,7 +354,7 @@ df_engr %>%
     labs(
     title = "Funding By Rewards",
     x="Length of Rewards", 
-    y="Chance of Funding") + 
+    y="Chance of Funding")
 
 ```
 

@@ -2,6 +2,13 @@
 title: "Machine_Learning_V1"
 output: html_document
 ---
+<style>
+.overflow {
+    max-height: 200px;
+    overflow-y: auto;
+}
+</style>
+
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -9,8 +16,17 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Machine Learning Models
 
+> Everyone knows machine learning is all the rage today. But many don't realize when it comes to doing data science, it is often the easiest and least time-consuming part of the project. This project was no exception. Regardless, at the end of it all, we gotta make some predictions. 
+Based on the collected projects, we observed that 55.9% of projects were funded. As such, we could achieve that accuracy level by predicting every project is funded. This is, therefore, the baseline for which our model must surpass to begin providing value.
+We decided to use two models that we enjoy working with, LASSO and Decision Tree. There is room to expand the complexity of the project by considering a more robust assortment of models, however, extracting the last bit of accuracy was not our goal.
+Both models acheived an aproximately identical accuracy rate in the test sample of 70%. 
+
 ## LASSO
-```{r}
+> LASSO is a type of linear regression model. Its unique feature is that it has a mechanism to avoid overfitting by adding a penalty term for each variable it uses. 
+Based on prior experience with LASSO, we expected to see it decide not to use many of the features we gave it. We were surprised to see coefficients for every variable! This phenomenon is likely driven by both the size of our dataset (which increases the statistical significance of any factor) and our intuitive understanding of engineering variables with predictive power. 
+During our exploratory analysis, we observed many of the continuous variables did not appear to be linear. We, therefore, decided to use the quantile versions of `goal`, `description_length`, and `reward_length`. This allows LASSO to treat each group independently from the others, emulating a more complex function identification.
+
+```{r include=FALSE}
 set.seed(1)
 n <- nrow(df_engr)
 shuffled_df <- df_engr[sample(n), ]
@@ -19,7 +35,10 @@ train <- shuffled_df[train_indices, ]
 test_indices <- (round(0.8 * n) + 1):n
 test <- shuffled_df[test_indices, ]
 rm(shuffled_df); rm(n); rm(test_indices); rm(train_indices);
+```
 
+
+```{r}
 train_y <- train$funded
 train_x <- model.matrix(funded ~ 
   campaign_duration +
@@ -48,15 +67,21 @@ test_x <- model.matrix(funded ~
   reward_length_10, data = test)
 
 cvfit <- cv.glmnet(x=train_x, y=train_y, alpha = 1)
-
 coef(cvfit, s = "lambda.min")
+```
 
-mean(test_y)
+> Accuracty of LASSO in Test Set
+
+```{r echo=FALSE}
 mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "response") >= .5))
 ```
 
 
-## Decision Tree and/or Random Forest
+
+***
+## Decision Tree
+>  Decision trees are a classification model that finds breakpoints in the data that classify every (remaining) observation in a binary fashion. One of the major advantages is that it does not assume variables to behave linearly. As such, you will notice we did place the continuous variables into quantiles for the tree as it will find the breakpoints itself.
+
 ```{r}
 set.seed(1)
 tree <- rpart(funded ~ 
@@ -69,27 +94,75 @@ tree <- rpart(funded ~
   category +
   goal +
   description_length +
-  reward_length, data = train, cp = .000005)
+  reward_length, data = train)
+```
 
+***
+### Simple tree
+> In this simple tree, we used the default complexity parameter of 1%. This limits how many nodes the decision tree will grow. While this is not our most accurate model, its simplicity clearly illustrates how the tree works. We also found it impressive that using only three levels `goal`, `reward`, and `category`, it was able to predict funding with ~65% accuracy.
+
+```{r  echo=FALSE, class.source="overflow"}
 summary(tree)
-prp(tree, extra = 1, box.palette = "auto")
-printcp(tree)
-plotcp(tree)
+```
+
+```{r echo=FALSE}
+
 index <- which.min(tree$cptable[ , "xerror"])
 tree_min <- tree$cptable[index, "CP"]
 
 pruned_tree <- prune(tree, cp = tree_min)
 prp(pruned_tree, extra = 1, box.palette = "auto")
-
-mean(test$funded)
-mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
-
 ```
 
-##Classification Model
-Our final task in text analysis was to propose a mechanism for predictive binary classification of project success or failure based on project description.
+> Accuracty of Simple Tree in Test Set
 
-To prepare to fit the model, we considered both unigrams (single terms) and bigrams and filtered for words that appear in at least 500 project descriptions. We calculated tf-idf and formatted the results in a document-term matrix. We also created train and test datasets based on an 80/20% split of the data.
+```{r echo=FALSE}
+mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
+```
+
+***
+### Complex tree
+> For a more detailed tree, we reduced the complexity parameter to 0.01%. In so doing, we encourage the tree to make many more splits that show even slight predictive power. It is important to note, that if we were to lower the complexity parameter enough, the tree would find a way to perfectly predict each in sample observation; however, that would be a classic case of overfitting the model. 
+
+```{r echo=FALSE}
+set.seed(1)
+tree <- rpart(funded ~ 
+  campaign_duration +
+  usa +
+  social_media_count +
+  photo_key +
+  video_status +
+  mo_launched +
+  category +
+  goal +
+  description_length +
+  reward_length, data = train, cp = .0001)
+```
+
+```{r  echo=FALSE, class.source="overflow"}
+summary(tree)
+```
+
+```{r echo = FALSE, warning = FALSE}
+prp(tree, extra = 1, box.palette = "auto")
+```
+
+> As you can see, that is one crazy tree. To avoid overfitting, we underwent a process called "pruning." This process finds the complexity parameter that has the lowest cross-validated error. Although it still produces many branches, it is much more streamlined as compared to the prior iteration.  This is the tree we will use to make our final predictions. 
+
+```{r}
+index <- which.min(tree$cptable[ , "xerror"])
+tree_min <- tree$cptable[index, "CP"]
+
+pruned_tree <- prune(tree, cp = tree_min)
+prp(pruned_tree, extra = 1, box.palette = "auto")
+```
+
+> Accuracty of Complex Tree in Test Set
+
+```{r echo=FALSE}
+mean(test$funded == as.numeric(predict(pruned_tree, newdata = test) >= .5))
+```
+
 
 ```{r include=FALSE, eval=FALSE}
 library(naivebayes)
@@ -97,6 +170,12 @@ library(ranger)
 ```
 
 ```{r include=FALSE, eval=FALSE}
+##Classification Model
+# Our final task in text analysis was to propose a mechanism for predictive binary classification of project success or failure based on project description.
+
+# To prepare to fit the model, we considered both unigrams (single terms) and bigrams and filtered for words that appear in at least 500 project descriptions. We calculated tf-idf and formatted the results in a document-term matrix. We also created train and test datasets based on an 80/20% split of the data.
+
+
 # Create data frame for model
 db_text_model <- db_cleaned %>%
   mutate(funded = state == "successful",
@@ -137,8 +216,9 @@ db_text_test <- meta[-trainIndex,]
 response_train <- meta$funded[trainIndex]
 ```
 
-We tested Naïve Bayes and Random Forest classification models.
+
 ```{r include=FALSE, eval=FALSE}
+# We tested Naïve Bayes and Random Forest classification models.
 trctrl <- trainControl(method = "none")
 
 # Naïve Bayes
