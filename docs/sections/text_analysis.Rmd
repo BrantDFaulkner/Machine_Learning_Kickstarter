@@ -7,20 +7,27 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-#Text Analysis
+```{r include=FALSE}
+#Customize ggplot theme
+theme_set(theme_minimal())
+theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+theme_update(plot.title = element_text(color="#666666", face="bold", size=22, hjust=0))
+theme_update(axis.title = element_text(color="#666666", face="bold", size=18))
+theme_update(plot.title = element_text(hjust = 0.5))
+```
 
-The variable `full_description` contains the complete project description from kickstarter. Unstructured data, such as this text variable, require more cleaning and transformation to be useful, but can potentially be a source of rich information. Our application of text analysis had three primary motives:
-  1. Examine word frequency with word counts and wordclouds
+#Text Analysis
+> `full_description` contains the complete project description from kickstarter. Unstructured data like this require more cleaning and transformation to be useful, but have the potential to be a source of rich information. Our application of text analysis had three primary motives:
+
+  1. Examine word frequency with word counts
+  2. Visualize word frequency with wordclouds
   2. Contruct topic models
   3. Binary calssification to predict project funding status
 
-##Examine Word Frequency
-We began by transforming the strings of text in `full_description` into a data frame with one word per row. We then removed English stop words, common words that carry little semantic meaning and are thus immaterial to analyses (e.g., "and", "the", "of"). Finally, we determined word counts for:
-* the entire dataset,
-* only successful projects, and
-* only failed projects.
+***
 
-The graph below shows the words that occur over 25,000 times in the full description text of all projects.
+## Word Frequency
+> We began by transforming the strings of text in `full_description` into a data frame with one word per row. Then we removed English stop words, common words that carry little semantic meaning and are thus immaterial to analyses (e.g., "and", "the", "of"). Finally, we determined word counts for the entire dataset.
 
 ```{r include=FALSE}
 library(tidytext)
@@ -42,7 +49,11 @@ fd_text_tidy %>%
   mutate(word = reorder(word, n)) %>%
   ggplot(aes(word, n)) +
   geom_col() +
-  xlab(NULL) +
+  stat_summary(geom = "bar", fill = "#332288") +
+  labs(
+    title = "Words Appearing Over 25,000 Times",
+    x="Word", 
+    y="Word Frequency") +
   coord_flip()
 
 # Most frequently used words in successful descriptions
@@ -61,40 +72,45 @@ fail_fd_text_tidy <- fail_fd_text %>%
   anti_join(stop_words)
 #  count(word, sort = TRUE)
 ```
+***
 
-Next, we examined the correlation between word proportions of successful and failed project descriptions. Word proportion represents the percentage of time that a given word is used out of the total number of words in the document. In this case, the documents are the collection of all successful project descriptions and all failed project descriptions. We observed, both visually and in terms of Pearson's correlation coefficient, that the terms used in successful and failed project descriptions were overwhelmingly similar.
+> Next, we examined the correlation between word proportions of successful and failed project descriptions. Word proportion represents the percentage of time that a given word is used out of the total number of words in the document. In this case, the documents are the collection of all successful project descriptions and all failed project descriptions. We observed, both visually and in terms of Pearson's correlation coefficient, that the terms used in successful and failed project descriptions were overwhelmingly similar.
 
 ```{r, echo=FALSE, message=FALSE, warning=FALSE}
 # Where is there word overlap between successful and failed projects?
 set.seed(1)
-frequency <- bind_rows(mutate(success_fd_text_tidy, funded = "successful"),
-                       mutate(fail_fd_text_tidy, funded = "failed")) %>% 
+frequency <- bind_rows(mutate(success_fd_text_tidy, funded = " "),
+                       mutate(fail_fd_text_tidy, funded = "Failed Projects")) %>% 
   count(funded, word) %>%
   group_by(funded) %>%
   mutate(proportion = n/sum(n)) %>% 
   select(-n) %>% 
   spread(funded, proportion) %>% 
-  gather(funded, proportion, `successful`)
+  gather(funded, proportion, ` `)
 
-ggplot(frequency, aes(x = proportion, y = `failed`, color = abs(`failed` - proportion))) +
+ggplot(frequency, aes(x = proportion, y = `Failed Projects`, color = abs(`Failed Projects` - proportion))) +
   geom_abline(color = "gray40", lty = 2) +
-  geom_jitter(alpha = 0.5, size = 1.5, width = 0.1, height = 0.1) +
-  geom_text(aes(label = word), check_overlap = TRUE, vjust = 0.5) +
+  geom_jitter(alpha = 0.5, size = 1.5, width = 0.1, height = 0.1, colour = "#332288") +
+  geom_text(aes(label = word), check_overlap = TRUE, vjust = 0.5, colour = "#332288") +
   scale_x_log10(labels = percent_format()) +
   scale_y_log10(labels = percent_format()) +
   scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
   facet_wrap(~funded, ncol = 2) +
   theme(legend.position="none") +
-  labs(y = "failed", x = "successful")
+  labs(title = "Comparing Word Frequency Proportions", y = "Failed Projects", x = "Successful Projects")
 
-cor.test(data = frequency[frequency$funded == "successful",], ~ proportion + `failed`)
+cor.test(data = frequency[frequency$funded == " ",], ~ proportion + `Failed Projects`)
 ```
 
 ```{r include=FALSE}
 rm(success_fd_text, fail_fd_text, frequency, fd_text_tidy)
 ```
 
-Another way to visualize word frequency is by constructing wordclouds, which scale the size of text of a word to match its frequency in the document relative to other words' frequencies. We constructed a wordcloud for the descriptions from the entire dataset. We were not surprised to see that "project", "kickstarter", and "goal" were among the most frequent terms used.
+***
+
+## Wordclouds
+
+> Another way to visualize word frequency is by constructing wordclouds, which scale the size of text of a word to match its frequency in the document relative to other words' frequencies. We constructed a wordcloud for the descriptions from the entire dataset. Unsurprisingly, "project", "kickstarter", and "goal" were among the most frequent terms used.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
@@ -110,15 +126,16 @@ pal <- brewer.pal(9, "BuPu")
 wordcloud(description_corpus, max.words = 100, random.order = FALSE, colors = pal, ordered.color = FALSE)
 ```
 
-Wordclouds can be a useful way to visually observe differences in word variety and frequency between different groups of documents. Although they cannot be used in subsequent modeling, they are a tool for understanding unstructured text data and formulating hypotheses.
+***
 
-Therefore, we grouped our dataset into documents 
+> Wordclouds can be a useful way to observe differences in word variety and frequency between different groups of documents. Although they cannot be used in subsequent modeling, they are a tool for understanding unstructured text data and formulating hypotheses. Therefore, we grouped our dataset into documents: 
+
 * by year to identify trends over time, and
-* by `funded` to identify differences between successful and failed projects.
+* by `funded` to identify differences between successful and failed projects
 
-Prior to generating the wordclouds, we also created a custom set of stop words to weed out common terms in our dataset that could mask points of distinction between documents.
+> Prior to generating the wordclouds, we also created a custom set of stop words to weed out common terms in our dataset that could mask points of distinction between documents.
 
-In the wordclouds by year, we see that music was initially the most prevalent in 2009, but film began to emerge as the predominant category 2010-2011. In 2012-2013, games appear as the biggest category. These wordclouds also give us a hint regarding the variety of projects. From 2009-2011, the wordclouds become larger and word frequency is less concentrated around the same terms. Abruptly in 2012, the projects seems to become less disparate, but in 2013 variety increases again. This suggests that the degree of project variety on kickstarter may be cyclical; this seems logical as artists and entrepreneurs in the same field turn to kickstarter after hearing about colleagues' successes. However, more years of data are needed to verify the hypothesis of three-year periodicity.
+> In the wordclouds by year, we see that music was initially the most prevalent in 2009, but film began to emerge as the predominant category 2010 - 2011. In 2012 - 2013, games appear as the biggest category. These wordclouds also give us a hint regarding the variety of projects. From 2009 - 2011, the wordclouds become larger and word frequency is less concentrated around the same terms. Abruptly in 2012, the projects seems to become less disparate, but in 2013 variety increases again. This suggests that the degree of project variety on kickstarter may be cyclical; perhaps artists and entrepreneurs in the same field turn to kickstarter after hearing about colleagues' successes. However, more years of data are needed to verify the hypothesis of three-year periodicity.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
@@ -148,8 +165,9 @@ for(i in 1:length(Year)) {
 #plot_grid(wordcloud2009, wordcloud2010, wordcloud2011, wordcloud2012, wordcloud2013, 
 #          labels = c(2009, 2010, 2011, 2012, 2013))
 ```
-
-In the wordclouds by funding status, we observed a high degree of similarity in both terms and frequency between successful and failed projects. Books seemed more likely to fail due to the higher prevalence of "book" in the failed wordcloud. There also seemed to be more variety in the successful wordcloud, perhaps indicating richer project descriptions. However, it seems that high world frequency may not be the best delineator of successful versus failed projects.
+ ***
+ 
+> In the wordclouds by funding status, we observed a high degree of similarity in both terms and frequency between successful and failed projects. Books seemed more likely to fail due to the higher prevalence of "book" in the failed wordcloud. There also seemed to be more variety in the successful projects wordcloud, perhaps indicating richer project descriptions. But generally, high world frequency may not be the best delineator of successful versus failed projects.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 set.seed(1)
@@ -178,11 +196,14 @@ for(i in 1:length(Success)){
 rm(description_corpus, exclude, i, ind, pal, Success, SuccessUnique, Year, YearUnique)
 ```
 
-Sometimes the best way to determine points of difference between two similar documents are the terms which are unique between the two documents, rather than the most frequent terms. For example, two books written by the same author would likely generate similar wordclouds, yet the unique characters and places in the books would enable us to detect which book is which.
+***
 
-To see if this might be the case in our collection of successful and failed projects, we examined the term frequency-inverse document frequency (tf-idf). tf looks for terms that are common; idf decreases the weight placed on commonly used terms in the collection and increases the weight placed on words that are not commonly used in the collection (i.e., common in a few documents). To remove nonsensical words from the analysis, we only considered words with a frequency of greater than 500, which is a reasonably low cutoff in a dataset with 700,000+ unique terms.
+##Inverse Document Freuqency
+> Sometimes the best way to determine points of difference between two similar documents are the terms which are unique between the two documents, rather than the most frequent terms. For example, two books written by the same author would likely generate similar wordclouds, yet the unique characters and places in the books would enable us to detect which book is which.
 
-The results of this analysis suggest that board games and film are likely to be successful (dice, unlocked, filmmaker(s), expansion, boards, filmmaking, premiere). However, although the games category overall had a high success rate, it appears that games involving war and violence were less likely to receive funding (weapon, battles, security, agent), as were online games (multiplayer, server, playable, modes, animations).
+> To see if this might be the case in our collection of successful and failed projects, we examined the term frequency-inverse document frequency (tf-idf). tf looks for terms that are common; idf decreases the weight placed on commonly used terms in the collection and increases the weight placed on words that are not commonly used in the collection (i.e., common in a few documents). To remove nonsensical words from the analysis, we only considered words with a frequency of greater than 500, which is a reasonably low cutoff in a dataset with 700,000+ unique terms.
+
+> The results of this analysis suggest that board games and film are likely to be successful (dice, unlocked, filmmaker(s), expansion, boards, filmmaking, premiere). However, although the games category overall had a high success rate, it appears that games involving war and violence were less likely to receive funding (weapon, battles, security, agent), as were online games (multiplayer, server, playable, modes, animations).
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 set.seed(1)
@@ -213,27 +234,29 @@ funded_words %>%
   top_n(20) %>% 
   ungroup %>%
   ggplot(aes(word, tf_idf, fill = funded)) +
-  geom_col(show.legend = FALSE) +
-  labs(x = NULL, y = "tf-idf") +
-  facet_wrap(~funded, ncol = 2, scales = "free") +
+  geom_col(show.legend = FALSE, fill = "#332288") +
+  labs(x = NULL, y = "Term Frequency - Inverse Document Frequency") +
+  theme(axis.text.x = element_blank()) +
+  facet_wrap(~funded, ncol = 2, scales = "free_y") +
   coord_flip()
 ```
 
 ```{r include=FALSE}
 rm(fail_fd_text_tidy, success_fd_text_tidy, total_words, funded_words)
 ```
+***
 
 ##Topic Modeling
-The analyses in the previous section have focused on the "bag-of-words" approach and word frequency as a method for natural language processing, the means by which computers make sense of human language. Although this is a common and useful approach, there are other useful ways to describe text data.
+> The analyses in the previous section have focused on the "bag-of-words" approach and word frequency as a method for natural language processing, the means by which computers make sense of human language. Although this is a common and useful approach, there are other useful ways to describe text data.
 
-One such method is topic modeling. Topic models assume that word or groups of words (called n-grams) which appear frequently together in a dataset are explained by underlying, unobserved groups(called topics). By examining word or n-gram overlap in the documents comprising a dataset, these topics can be detected. Although the computer cannot provide a semantic label for the topics, a human who is familiar with the dataset could examine the top words and determine a theme.
+> One such method is topic modeling. Topic models assume that word or groups of words (called n-grams) which appear frequently together in a dataset are explained by underlying, unobserved groups (called topics). By examining word or n-gram overlap in the documents comprising a dataset, these topics can be detected. Although the computer cannot provide a semantic label for the topics, a human who is familiar with the dataset could examine the top words and determine a theme.
 
 ##Latent Dirichlet allocation
-We chose Latent Dirichlet allocation (LDA) as our statistical model for topic detection. LDA examines text by word frequency and co-occurence in documents, which are individual project descriptions in our case. LDA assumes that each document covers a small number of topics and a small set of words it uses frequently, and so it is good at assigning documents to topics.
+> We chose Latent Dirichlet allocation (LDA) as our statistical model for topic detection. LDA examines text by word frequency and co-occurence in documents, which are individual project descriptions in our case. LDA assumes that each document covers a small number of topics and a small set of words it uses frequently, and so it is good at assigning documents to topics.
 
-To feed data into the model, we first processed the text to transform it to lowercase, remove punctuation, and remove stop words. In this section, we also performed word stemming, which groups words together that have the same root but different suffixes. This process helps ensure that words with the same semantic meaning, but different verb conjugations and the like, are assessed as the same word. As a result, our results show some incomplete word stems.
+> To feed data into the model, we first processed the text to transform it to lowercase, remove punctuation, and remove stop words. In this section, we also performed word stemming, which groups words together that have the same root but different suffixes. This process helps ensure that words with the same semantic meaning, but different verb conjugations and the like, are assessed as the same word. As a result, our results show some incomplete word stems.
 
-After processing the text, we used it to generate documents, a vocabulary of terms in the dataset, metadata to construct the model. Consistent with our tf-idf analysis above, we only considered terms that appeared in at least 500 documents. We ran iterations of the LDA model specifying both 20 and 40 topics. The model did not reach convergence over 10 or 20 iterations; however, meaningful topics emerged with 20 iterations over 40 topics.
+> After processing the text, we used it to generate documents, a vocabulary of terms in the dataset, metadata to construct the model. Consistent with our tf-idf analysis above, we only considered terms that appeared in at least 500 documents. We ran iterations of the LDA model specifying both 20 and 40 topics. The model did not reach convergence over 10 or 20 iterations; however, meaningful topics emerged with 20 iterations over 40 topics.
 
 ```{r include=FALSE}
 library(stm)
@@ -256,63 +279,51 @@ poliblogPrevFit <- stm(documents = out$documents, vocab = out$vocab, K = 40, max
                        data = out$meta, init.type = "LDA")
 ```
 
-Visualizing the results of our topic model, we see some meaningful topics emerge, some centered on the mechanisms of the platform, and others identifying product categories or subcategories.
-
 ```{r echo=FALSE}
 plot(poliblogPrevFit, type = "summary", xlim = c(0, .06), text.cex = 0.5)
 ```
+***
 
-For example, Topic 1 could be labeled Funding Requests and includes terms like "help", "money", "donate", "dollar", "goal", "buck", and "reach". Topic 7 is all about the rewards provided to backers if the project is successful: "pledge", "reward", "level", "backer", "goal", and "ship."
+> Visualizing the results of our topic model, we see some meaningful topics emerge, some centered on the mechanisms of the platform, and others identifying product categories or subcategories. For example, Topic 18 could be labeled Funding Requests and includes terms like "goal", "donate", "money", "raise", and "reach".
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 # Describe topics
-labelTopics(poliblogPrevFit, c(1, 7))
+labelTopics(poliblogPrevFit, 18)
 
-cloud(poliblogPrevFit, topic = 1, scale = c(3, 1))
-cloud(poliblogPrevFit, topic = 7, scale = c(3, 1))
+cloud(poliblogPrevFit, topic = 18, scale = c(3, 1))
 ```
+***
 
-On the other hand, Topic 6 seems to describe a certain subcategory of Film & Video and could be labeled Web Series with terms like "show", "series", "episode", "season", "pilot", "web", "anime", and "comedy." Topic 24 seems to describe a subcategory of Journalism and could be labeled Periodicals with terms like "issue", "magazine", "media", "interview", "article", "content", "journal", and "print."
+> On the other hand, Topic 37 seems to describe a certain subcategory of Design and could be labeled Graphic Design with terms like "design", "print", "edit", "poster", "shirt", and "sticker".
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 # Describe topics
-labelTopics(poliblogPrevFit, c(6, 24))
+labelTopics(poliblogPrevFit, 37)
+
+cloud(poliblogPrevFit, topic = 37, scale = c(3, 1))
+```
+***
+
+> The theme of the projects is clear from some topics, although the type of project is not easily distinguished. For example, Topic 6 is about Education, but could span many types of projects.
+
+```{r echo=FALSE, warning=FALSE, message=FALSE}
+# Describe topics
+labelTopics(poliblogPrevFit, 6)
 
 cloud(poliblogPrevFit, topic = 6, scale = c(3, 1))
-cloud(poliblogPrevFit, topic = 24, scale = c(3, 1))
 ```
+***
 
-The theme of the projects is clear from some topics, although the type of project is not easily distinguished. For example, Topic 30 is about Fantasy, but could span several types of projects. The same is true of Topic 31 (Christianity), Topic 35 (Family), and Topic 39 (Outer Space).
-
-```{r echo=FALSE, warning=FALSE, message=FALSE}
-# Describe topics
-labelTopics(poliblogPrevFit, c(30, 31, 35, 39))
-
-cloud(poliblogPrevFit, topic = 30, scale = c(3, 1))
-cloud(poliblogPrevFit, topic = 31, scale = c(3, 1))
-cloud(poliblogPrevFit, topic = 35, scale = c(3, 1))
-cloud(poliblogPrevFit, topic = 39, scale = c(3, 1))
-```
-
-We also visualized the correlations between the 40 topics. The green nodes indicate topics, and the dashed lines represent relatedness between topics. The length of the dashed lines indicate the degree of similarity between two topics. Our topic models are highly related to one another, both in terms of the number of connections and the distance of connections.
+> We also visualized the correlations between the 40 topics. The green nodes indicate topics, and the dashed lines represent relatedness between topics. The length of the dashed lines indicate the degree of overlap between two topics. Our topic models are highly related to one another, both in terms of the number of connections and the distance of connections.
 
 ```{r echo=FALSE, warning=FALSE, message=FALSE}
 mod.out.corr <- topicCorr(poliblogPrevFit)
 plot(mod.out.corr)
 ```
+***
 
-In natural language processing, data often arrive with little metadata to categorize the text. Although we have project category in our dataset, we have no mechanism, aside from text mining, to determine project themes, which may be highly related to success or failure. Therefore, the results of the LDA model could be useful for classification of successful and unsuccessful projects.
+> In natural language processing, data often arrive with little metadata to categorize the text. Although we have project category in our dataset, we have no mechanism, aside from text mining, to determine topic categorization, which may be highly related to success or failure. Therefore, the results of the LDA model could be useful for classification of successful and unsuccessful projects.
 
 ```{r include=FALSE}
 rm(docs, i, mod.out.corr, out, poliblogPrevFit, processed, vocab)
 ```
-
-
-
-##Acknowledgements
-The following resources were invaluable to the completion of this section:
-* Text Mining with R: A Tidy Approach (Silge & Robinson, 2018; https://www.tidytextmining.com)
-* Class notes from Prof. Ujjal Mukherjee (University of Illinois at Urbana-Champgin, Gies College of Business)
-* stm: R Package for Structural Topic Models (Roberts, Stewart, & Tingley; https://cran.r-project.org/web/packages/stm/vignettes/stmVignette.pdf)
-* Binary text classification with Tidytext and caret (Hvitfeldt, 2018; https://www.hvitfeldt.me/2018/03/binary-text-classification-with-tidytext-and-caret/)
-* naivebayes package documentation (ftp://cran.r-project.org/pub/R/web/packages/naivebayes/naivebayes.pdf)

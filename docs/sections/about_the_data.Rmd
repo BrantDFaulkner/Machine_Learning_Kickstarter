@@ -7,6 +7,13 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r include=FALSE}
+install.packages(knitr)
+library(knitr)
+install.packages("kableExtra")
+library(kableExtra)
+```
+
 #Data Dictionary
 
 ```{r echo=FALSE}
@@ -82,7 +89,7 @@ dictionary$Values <- list("0: failed; 1: successful",
                           "0: no spotlight; 1: spotlight",
                           "0: no badge; 1: 'Projects We Love' badge",
                           "0: other countries; 1: USA",
-                          "0: no links to social media; 1: one or more links provided",
+                          "0: no links to social media; 1: one or more links",
                           "0: no Facebook link; 1: Facebook link provided",
                           "0: no Twitter link; 1: Twitter link provided",
                           "0: no YouTube link; 1: YouTube link provided",
@@ -101,7 +108,11 @@ dictionary$Values <- list("0: failed; 1: successful",
                           "art, comics, dance, design, fashion, food, film&video, games, journalism, music,
                           photography, technology, theater, publishing, crafts")
 
-print(dictionary)
+dictionary %>%
+  kable("html") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>%
+  column_spec(2, width = "50em") %>%
+  column_spec(4, width = "40em")
 ```
 
 ```{r include=FALSE}
@@ -130,4 +141,11 @@ for (j in 1:ncol(db)) {
 }
 ```
 
+#Acknowledgements
+The following resources were invaluable to the completion of the project:
 
+* Text Mining with R: A Tidy Approach (Silge & Robinson, 2018; https://www.tidytextmining.com)
+* stm: R Package for Structural Topic Models (Roberts, Stewart, & Tingley; https://cran.r-project.org/web/packages/stm/vignettes/stmVignette.pdf)
+* Binary text classification with Tidytext and caret (Hvitfeldt, 2018; https://www.hvitfeldt.me/2018/03/binary-text-classification-with-tidytext-and-caret/)
+* naivebayes package documentation (ftp://cran.r-project.org/pub/R/web/packages/naivebayes/naivebayes.pdf)
+* Create Awesome HTML Table with knitr::kable and kableExtra (Zhu, 2018; https://haozhu233.github.io/kableExtra/awesome_table_in_html.html)

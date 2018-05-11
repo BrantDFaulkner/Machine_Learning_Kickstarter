@@ -31,6 +31,6 @@ Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/b
 
 ### Courtney Marie Allen
 
-I love group fitness. I guess data is cool too.
+Stats are the bomb. I also enjoy injecting order into chaos by exploring unstructured text data.
 
 Ask me any questions here or [Connect on LinkedIn](https://www.linkedin.com/in/courtneymarieallen/)!

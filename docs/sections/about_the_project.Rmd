@@ -9,26 +9,26 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 # About the Project
+ > The project described below encompasses:
 
+* Data collection of Kickstarter projects and creators
+* Data cleaning
+* Exploration of datasets
+* Analysis of unstructured text data
+* Machine learning algoriths to predict project success
+
+> From our analysis, we seek to make recommendations to entrepreneurs, regarding when and how to employ crowdfunding for project financing. 
+ 
 ## Croudfunding
 
-The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
+> The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
 
-Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovations on a public platform.  
+> Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovation through a public platform.
 
-Our project would entail exploration of datasets regarding Indiegogo and Kickstarter projects., The primary project goal would be to construct a model that predicts crowdfunding success. In order to accomplish this, additional data sources may be required regarding consumer demand, small businesses, etc. From that predictive model, we seek to make recommendations (1) to entrepreneurs, regarding when and how to employ crowdfunding for project financing, and (2) to the lending services and venture capital industries, regarding how their business models should react.  
+# Data Collection and Cleaning
 
-From this independent study course, I expect to:
-* Use multiple publicly-available crowdfunding datasets and R programming,
-* Clean data and conduct primary research to obtain additional variables (as needed), 
-* Apply statistical analysis techniques to describe trends,
-* Construct a model to predict crowdfunding success, and
-* Prescribe best practices for entrepreneurs to leverage crowdfunding.
+> Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
 
-## Data Collection and Cleaning
+> Of these projects, possible outcome states included failed, succesful, suspended, canceled, and purged. We excluded 1,246 projects with suspended, canceled, or purged outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the amount pledged (e.g., state is listed as failed when the amout pledged exceeded the goal). The final dataset for analysis contained 49,350 projects.
 
-Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
-
-Of these projects, possible outcome states included failed, succesful, suspended, canceled, and purged. We excluded 1,246 projects with suspended, canceled, or purged outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the amount pledged (e.g., state is listed as failed when the amout pledged exceeded the goal). The final dataset for analysis contained 49,350 projects.
-
-Of the original 120 variables, 41 contained meaningful information for analyses. Selecting from, transforming, and performing additional computations resulted in 29 variables used in subsequent exploratory analysis and machine learning. These variables are described in the Data Dictionary below.
+> Of the original 120 variables, 41 contained meaningful information for analyses. Selecting from, transforming, and performing additional computations resulted in 29 variables used in subsequent exploratory analysis and machine learning. These variables are described in the Data Dictionary below.

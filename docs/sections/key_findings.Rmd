@@ -3,12 +3,31 @@ title: "Key Findings"
 output: html_document
 ---
 
+```{r include=FALSE}
+#Customize ggplot theme
+theme_set(theme_minimal())
+theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+theme_update(plot.title = element_text(color="#666666", face="bold", size=22, hjust=0))
+theme_update(axis.title = element_text(color="#666666", face="bold", size=18))
+theme_update(plot.title = element_text(hjust = 0.5))
+```
+
 # Key Findings
 
-## `percent_funded`
-Non-normal distribution shows that most projects over ~75% of their goal wind up being successful. There may be outside manipulation happening due to Kickstarter promotions of projects that are near their goals, or personal donations by the creators and/or creators personal connections.
+## Machine Learning
 
-```{r echo=FALSE}
+
+
+***
+
+## `percent_funded`
+> Percent funded is defined as the amount pledged by the end of a campaign divided by the goal amount specified at the beginning of the campaign. Our data shows an immense range, from projects that received no funding at all to one that received four million perecent. 
+
+> Initially, we thought percent funded would be a good continuous outcome variable for predictive modeling. It is more precise than binary classification, which required selecting a somewhat arbitrary decision threshold. However, plotting the histogram shows that the data has a non-normal distribution. The distribution shows that most projects over ~75% of their goal wind up being successful. Because of this pattern, `percent_funded` was unsuitable for predictive modeling. This distribution also prevented conducting any natural experiemnts, such as regression discontinuity, to determine differences between barely-failed and barely-successful projects.
+
+> Further online research showed that there may be outside manipulation happening due to Kickstarter promotions of projects that are near their goals. In addition, personal donations by the creators and/or creators personal connections may play a role in generating the observed distribution.
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
 
 df_filtered_by_percent_funded <- df_engr %>%
   filter(!is.na(percent_funded) & percent_funded <= 400)
@@ -16,14 +35,18 @@ df_filtered_by_percent_funded <- df_engr %>%
 # Non-normal distribution
 df_filtered_by_percent_funded %>% 
   ggplot(aes(x = percent_funded)) + 
-  geom_histogram(fill = "#332288")
+  geom_histogram(fill = "#332288") +
+  labs(title = "Histogram of Percent Funded", x = "Pledged/Goal (%)", y = "Number of Projects")
 
 #Clean up
 rm(df_filtered_by_percent_funded)
 ```
 
+***
 
-## `staff_pick`
+## Influence Probability of Success During the Campaign
+
+### `staff_pick`
 This flag denotes projects that have received the "Projects We Love" badge and get prominently features on the website, newsletters, and blogs. Kickstarter staff clearly has a great eye for promising projects and/or some strong marketing impact.
 
 'staff_pick` has exciting implications for the continuation of this project. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer and therefore serves as a benchmark for our machine learning.
@@ -38,3 +61,10 @@ df_engr %>%
     summarise(n(), mean(funded)) %>% 
   ungroup(staff_pick)
 ```
+
+### `updates_count`
+
+
+### `comments_count`
+
+
