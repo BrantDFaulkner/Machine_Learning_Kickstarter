@@ -27,7 +27,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-```{r child = 'sections/machine_learning.Rmd'}
+```{r child = 'sections/exploratory_analysis.Rmd'}
 
 ```
 
@@ -35,7 +35,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
-```{r child = 'sections/exploratory_analysis.Rmd'}
+```{r child = 'sections/machine_learning.Rmd'}
 
 ```
 

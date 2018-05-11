@@ -2,13 +2,6 @@
 title: "Machine_Learning_V1"
 output: html_document
 ---
-<style>
-.overflow {
-    max-height: 200px;
-    overflow-y: auto;
-}
-</style>
-
 
 ```{r include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -16,10 +9,10 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Machine Learning Models
 
-> Everyone knows machine learning is all the rage today. But many don't realize when it comes to doing data science, it is often the easiest and least time-consuming part of the project. This project was no exception. Regardless, at the end of it all, we gotta make some predictions. 
+> While machine learning has achieved an intimidating buzzword status, it is often the easiest and least time-consuming part of the project to implement. This project was no exception. 
 Based on the collected projects, we observed that 55.9% of projects were funded. As such, we could achieve that accuracy level by predicting every project is funded. This is, therefore, the baseline for which our model must surpass to begin providing value.
 We decided to use two models that we enjoy working with, LASSO and Decision Tree. There is room to expand the complexity of the project by considering a more robust assortment of models, however, extracting the last bit of accuracy was not our goal.
-Both models acheived an aproximately identical accuracy rate in the test sample of 70%. 
+Both models achieved an approximately identical accuracy rate in the test sample of 70%. 
 
 ## LASSO
 > LASSO is a type of linear regression model. Its unique feature is that it has a mechanism to avoid overfitting by adding a penalty term for each variable it uses. 
@@ -76,8 +69,6 @@ coef(cvfit, s = "lambda.min")
 mean(test_y == as.numeric(predict(cvfit, s = "lambda.min", test_x, type = "response") >= .5))
 ```
 
-
-
 ***
 ## Decision Tree
 >  Decision trees are a classification model that finds breakpoints in the data that classify every (remaining) observation in a binary fashion. One of the major advantages is that it does not assume variables to behave linearly. As such, you will notice we did place the continuous variables into quantiles for the tree as it will find the breakpoints itself.
@@ -101,12 +92,11 @@ tree <- rpart(funded ~
 ### Simple tree
 > In this simple tree, we used the default complexity parameter of 1%. This limits how many nodes the decision tree will grow. While this is not our most accurate model, its simplicity clearly illustrates how the tree works. We also found it impressive that using only three levels `goal`, `reward`, and `category`, it was able to predict funding with ~65% accuracy.
 
-```{r  echo=FALSE, class.source="overflow"}
+```{r  include=FALSE}
 summary(tree)
 ```
 
 ```{r echo=FALSE}
-
 index <- which.min(tree$cptable[ , "xerror"])
 tree_min <- tree$cptable[index, "CP"]
 
@@ -139,7 +129,7 @@ tree <- rpart(funded ~
   reward_length, data = train, cp = .0001)
 ```
 
-```{r  echo=FALSE, class.source="overflow"}
+```{r  include=FALSE}
 summary(tree)
 ```
 

@@ -15,28 +15,31 @@ knitr::opts_chunk$set(echo = TRUE)
 
 > __Can we discover any interesting insights that could help future creators bring their projects to life?__
 
-> While most academic projects are pre-fabricated with clean resources and clear direction, this was not. We did this one from scratch! Here is a highlight real
+## Tech Stack
 
- > The project described below encompasses:
+> While most academic projects are pre-fabricated with existing data and clear direction, this was not. __We did this one from scratch!__ Here is our end to end process tech stack:
 
-* Data collection of Kickstarter projects and creators
-* Data cleaning
-* Exploration of datasets
-* Analysis of unstructured text data
-* Machine learning algorithms to predict project success
 
-> From our analysis, we seek to make recommendations to entrepreneurs, regarding when and how to employ crowdfunding for project financing. 
- 
-## Croudfunding
-
-> The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for a new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
-
-> Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovation through a public platform.
+* Collaborative programming: Github, RStudio, Atom & Z shell
+* Web Scraping: Python, Beautiful Soup
+* HTML Parsing: Python, RegEx
+* Data Base Management: SQLite, SQL
+* Exploratory Analysis: R
+* Visualizations: ggplot2
+* Machine Learning: R
+* Final Report: R Markdown
 
 ## Data Collection and Cleaning
 
-> Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
+> We collected 30GB of raw data over several months from Kickstarter using our custom python web scraping and parsing program. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
 
-> Of these projects, possible outcome states included failed, succesful, suspended, canceled, and purged. We excluded 1,246 projects with suspended, canceled, or purged outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the amount pledged (e.g., state is listed as failed when the amout pledged exceeded the goal). The final dataset for analysis contained 49,350 projects.
+> Of these projects, possible outcome states included `failed`, `successful`, `suspended`, `canceled`, and `purged`. We excluded 1,246 projects with `suspended`, `canceled`, or `purged` outcome states. We excluded four additional projects whose funding state is inaccurate in terms of the `amount_pledged` (e.g., `state` is listed as `failed` when the `amount_pledged` exceeded the `goal`). The final dataset for analysis contained 49,350 projects.
 
 > Of the original 120 variables, 41 contained meaningful information for analyses. Selecting from, transforming, and performing additional computations resulted in 29 variables used in subsequent exploratory analysis and machine learning. These variables are described in the Data Dictionary below.
+
+## Crowdfunding
+
+> The phenomenon of crowdfunding, an alternative financing approach, involves raising funds for new business ventures via small amounts of capital from a large number of individuals. Crowdfunding is a relatively new phenomenon enabled by wide access to social media and internet-based financial technology services (Fintech)., It makes obtaining funding more accessible for entrepreneurs and small businesses, as compared to traditional banking and lending services.  
+
+> Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available but also exposes them to increased risk. Regarding information and technology, it is enabling innovation through a public platform.
+
