@@ -17,16 +17,16 @@ theme_update(plot.title = element_text(hjust = 0.5))
 ## Machine Learning Predictions
 
 > We set out on this project to answer one question, "Can we use machine learning to predict which Kickstarter projects will get funded?" As it turns out, we can! 
-__Using relatively simple machine learning techniques and feature engineering, we raised our baseline accuracy from 56% to 
-70% (a 25% improvement)!__
-First, it is essential to establish a baseline metric for success. Given that in our collected data projects were funded at a rate of 56%, a model in the absolute simplest version would predict that every project was funded and be correct 56% of the time. For our predictions to have any value, we must beat this benchmark.
-During our exploratory analysis, we discovered a variable with exciting implications, `staff pick`. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer with 84% receiving funding.
-You can check them out: [Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
 
-```{r}
+> __Using relatively simple machine learning techniques and feature engineering, we raised our baseline accuracy from 56% to 
+70% (a 25% improvement)!__
+
+> First, it is essential to establish a baseline metric for success. Given that in our collected data projects were funded at a rate of 56%, a model in the absolute simplest version would predict that every project was funded and be correct 56% of the time. For our predictions to have any value, we must beat this benchmark. During our exploratory analysis, we discovered a variable with exciting implications, `staff pick`. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer with 84% receiving funding. [Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
+
+```{r echo = FALSE}
 df_engr %>%
   group_by(staff_pick) %>%
-    summarise(n(), mean(funded)) %>% 
+    summarise(count = n(), avg_funded = mean(funded)) %>% 
   ungroup(staff_pick)
 ```
 
@@ -37,11 +37,11 @@ df_engr %>%
 
 ***
 ## `percent_funded`
-> Percent funded is defined as the amount pledged by the end of a campaign divided by the goal amount specified at the beginning of the campaign. Our data shows an immense range, from projects that received no funding at all to one that received four million perecent. 
+> This histogram of `percent_funded` was one of the most interesting we saw during the project. Notice that almost every project that achieves ~75% of their goal made it to, or well past 100% (we found an outlier at 4 million percent). __Virtually no projects fall just short of their goal!__
 
-> Initially, we thought percent funded would be a good continuous outcome variable for predictive modeling. It is more precise than binary classification, which required selecting a somewhat arbitrary decision threshold. However, plotting the histogram shows that the data has a non-normal distribution. The distribution shows that most projects over ~75% of their goal wind up being successful. Because of this pattern, `percent_funded` was unsuitable for predictive modeling. This distribution also prevented conducting any natural experiemnts, such as regression discontinuity, to determine differences between barely-failed and barely-successful projects.
+> This generates significant insights into the workings of Kickstarter's business model. Each project has two key financial stakeholders, the project creator and Kickstarter itself (who collects a 5% fee on funded projects), each willing to pull whatever levers it can to avoid the worst case scenario--a 99% funded project. You can imagine, an almost funded creator will call all his family and friends--or even open their own wallet--to get a project across the finish line. Kickstarter will unleash all its marketing power through its almost funded page, newsletters, and emails to make the goal. 
 
-> Further online research showed that there may be outside manipulation happening due to Kickstarter promotions of projects that are near their goals. In addition, personal donations by the creators and/or creators personal connections may play a role in generating the observed distribution.
+> This insight should have a direct impact on a creator's goal-setting strategy. While we have seen that higher goals have lower funding rates, we actually encourage creators to set aggressive goals for reasonable absolute sums. For example, if a creator believes their project needs $1,000 in funding and can most likely procure the necessary backers, he should strongly consider raising the goal to $1,200-$1,300. In so doing, he would allow the regular backer support to raise the first $1,000 and then let his business partner (Kickstarter) aggressively market the project for him to raise the addition $200+, thereby covering the 5% fee and more.
 
 ```{r echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -57,6 +57,8 @@ df_filtered_by_percent_funded %>%
 #Clean up
 rm(df_filtered_by_percent_funded)
 ```
+
+> Initially, we thought percent funded would be a good continuous outcome variable for predictive modeling. It is more precise than binary classification, which required selecting a somewhat arbitrary decision threshold. However, plotting the histogram shows that the data has a non-normal distribution. Because of this pattern, `percent_funded` was unsuitable for predictive modeling. This distribution also prevented conducting any natural experiments, such as regression discontinuity, to determine differences between barely-failed and barely-successful projects. 
 
 ***
 ## In-progress Causality
