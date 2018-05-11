@@ -14,12 +14,28 @@ theme_update(plot.title = element_text(hjust = 0.5))
 
 # Key Findings
 
-## Machine Learning
+## Machine Learning Predictions
 
+> We set out on this project to answer one question, "Can we use machine learning to predict which Kickstarter projects will get funded?" As it turns out, we can! 
+__Using relatively simple machine learning techniques and feature engineering, we raised our baseline accuracy from 56% to 
+70% (a 25% improvement)!__
+Firstly,  it is essential to establish a baseline metric for success. Given that in our collected data projects were funded at a rate of 56%, a model in the absolute simplest version would predict that every project was funded and be correct 56% of the time. For our predictions to have any value, we must beat this benchmark.
+During our exploratory analysis, we discovered a variable with exciting implications, `staff pick`. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer with 84% receiving funding.
+You can check them out: [Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
+
+```{r}
+df_engr %>%
+  group_by(staff_pick) %>%
+    summarise(n(), mean(funded)) %>% 
+  ungroup(staff_pick)
+```
+
+> Kickstarter staff clearly has an eye for promising projects. However, predicting project success anywhere near this rate is likely impossible. Projects fortunate enough to be a `staff_pick` get prominently featured on the website, newsletters, and blogs. We do not doubt that such promotion materially effects the chance a project is funded. 
+
+> Scoping our target prediction accuracy range to 56-84%, we began construction models.  We built a LASSO Regression and Decision Tree models. Incorporating variables about the campaign such as `goal`, `rewards`, `category`, and `usa` along with information from the creator's profile such as `social_media_count` both models achieved an accuracy rate of ~70%--right in the middle of our target range. 
 
 
 ***
-
 ## `percent_funded`
 > Percent funded is defined as the amount pledged by the end of a campaign divided by the goal amount specified at the beginning of the campaign. Our data shows an immense range, from projects that received no funding at all to one that received four million perecent. 
 
@@ -43,24 +59,7 @@ rm(df_filtered_by_percent_funded)
 ```
 
 ***
-
 ## Influence Probability of Success During the Campaign
-
-### `staff_pick`
-This flag denotes projects that have received the "Projects We Love" badge and get prominently features on the website, newsletters, and blogs. Kickstarter staff clearly has a great eye for promising projects and/or some strong marketing impact.
-
-'staff_pick` has exciting implications for the continuation of this project. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer and therefore serves as a benchmark for our machine learning.
-
-It is important to note that we do not anticipate being able to replicate this success rate as there is a boosting effect from the marketing efforts that should increase the success rate well beyond Day Zero probabilities.
-
-[Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
-
-```{r echo=FALSE}
-df_engr %>%
-  group_by(staff_pick) %>%
-    summarise(n(), mean(funded)) %>% 
-  ungroup(staff_pick)
-```
 
 ### `updates_count`
 

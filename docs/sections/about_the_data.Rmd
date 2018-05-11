@@ -8,9 +8,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r include=FALSE}
-install.packages(knitr)
 library(knitr)
-install.packages("kableExtra")
 library(kableExtra)
 ```
 
