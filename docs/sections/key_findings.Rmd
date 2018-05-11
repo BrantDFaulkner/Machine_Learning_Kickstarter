@@ -19,7 +19,7 @@ theme_update(plot.title = element_text(hjust = 0.5))
 > We set out on this project to answer one question, "Can we use machine learning to predict which Kickstarter projects will get funded?" As it turns out, we can! 
 __Using relatively simple machine learning techniques and feature engineering, we raised our baseline accuracy from 56% to 
 70% (a 25% improvement)!__
-Firstly,  it is essential to establish a baseline metric for success. Given that in our collected data projects were funded at a rate of 56%, a model in the absolute simplest version would predict that every project was funded and be correct 56% of the time. For our predictions to have any value, we must beat this benchmark.
+First, it is essential to establish a baseline metric for success. Given that in our collected data projects were funded at a rate of 56%, a model in the absolute simplest version would predict that every project was funded and be correct 56% of the time. For our predictions to have any value, we must beat this benchmark.
 During our exploratory analysis, we discovered a variable with exciting implications, `staff pick`. As machine learning applications become more widely used and increase in efficacy, often the benchmark is, "Can it do better than a human?" `staff_pick` serves as a proxy for the best human judgment has to offer with 84% receiving funding.
 You can check them out: [Kickstarter - Projects We Love](https://www.kickstarter.com/discover/recommended)
 
@@ -59,11 +59,29 @@ rm(df_filtered_by_percent_funded)
 ```
 
 ***
-## Influence Probability of Success During the Campaign
+## In-progress Causality
+> During our exploratory analysis, we discovered many interesting variables. However, it quickly became apparent that our project as a complicated confounding variable, the point in time the project was observed. Our data is collected from the project as it exists now--completed.
 
-### `updates_count`
+> The significance of this is that as we build our models to predict the outcome of a project at its launch, we have access to information from the "future," beyond just the outcome variable of `funded`. Examples include `comments_count`, `updates count`, and whether a project gets featured on the almost funded page. We will use `comments_count` to dive a bit deeper.
 
+```{r echo = FALSE}
+df_commments = data.frame(funded = df_engr$funded, comments_count = db_cleaned$comments_count)
+df_commments$df_cc_20 = cut(df_commments$comments_count, breaks = unique(quantile(df_commments$comments_count, seq(0, 1, by = .05))), include.lowest = TRUE)
 
-### `comments_count`
+df_commments %>% 
+  group_by(df_cc_20) %>%
+  summarise(avg_funded = mean(funded)) %>%
+  ggplot(aes(x = df_cc_20, y = avg_funded)) +
+  geom_bar(stat="identity", fill = "#332288") +
+  labs(title = "Funding By Comments",
+       x="Number of Comments",
+       y="Chance of Funding")
 
+rm(df_commments)
+```
 
+> We can see an obvious correlation, as `comments_count` increases so does its chance of funding. Unsurprisingly (this is data analytics after all) we find ourselves wrestling with questions of causation. "Do comments cause a project to get funded?" "Or, do great projects that are destined for funding prone to receiving more comments?" 
+
+> Answering this question would require tracking projects over time while they are active and performing controlled experiments. For example, we could build two virtually identical projects and begin seeding the comments of only one, allowing us to identify the causal impact of seeding a project's comment section.
+
+> Luckily, we don't have to validate every hypothesis with statistical rigor to begin making business decisions. Our intuition tells us that the impact of `comments_count` is surely a mixture of causality. We can, therefore, recommend to creators that in addition to designing a compelling project, find a backer or two who are passionate about your project and encourage them to start a discussion on the project page. It might be just what you need to get tip the scales in your favor.
