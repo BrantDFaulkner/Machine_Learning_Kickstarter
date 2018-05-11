@@ -69,7 +69,7 @@ tree <- rpart(funded ~
   category +
   goal +
   description_length +
-  reward_length, data = train)
+  reward_length, data = train, cp = .000005)
 
 summary(tree)
 prp(tree, extra = 1, box.palette = "auto")
