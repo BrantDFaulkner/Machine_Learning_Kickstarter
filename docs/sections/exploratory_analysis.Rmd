@@ -269,7 +269,7 @@ t.test(funded ~ video_status, data = df_engr)
 ```
 
 ***
-##Social media connectedness
+### Social media connectedness
 > Social media shows an impact. Facebook seems to be the strongest and Youtube has a negative coefecient. Our hypothesis is that Facebook and Twitter may be used for promotion, while creators focusing on YouTube may over rely on their product content. Yet the most successfull creators have all three, which supports that YouTube is effective when paired with a comprehensive social media campaign.
 
 ```{r}
