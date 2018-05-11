@@ -301,7 +301,7 @@ df_engr %>%
 ### `campaign_duration`
 Interestingly, campaign duration has an inverse relationship to the likelihood of receiving funding; longer campaign are associated with higher failure rates.
 
-```{r}
+```{r echo=FALSE}
 
 df_camp_dur = data.frame(funded = df_engr$funded, campaign_duration = df_engr$campaign_duration)
 df_camp_dur$cd_10 = cut(df_camp_dur$campaign_duration, breaks = unique(quantile(df_camp_dur$campaign_duration, seq(0, 1, by = .1))), include.lowest = TRUE)
@@ -317,52 +317,23 @@ df_camp_dur %>%
 
 rm(df_camp_dur)
 
-
 ```
 
-##$avg_contribution
-Appears to have a skewed normal distribution with a mean of $72.
+### `description_length`
+We believe that a description can have a significant impact on a project's funding. In this projects next steps, we hope to extract more meaningful variables from the text analysis we have conducted. However, even in the most basic form, `description_length` shows a clear trend. It improves the chance of funding and then levels off. This implies that putting in the effort to make a detailed description is worthwhile. However, excessive wordiness and/or novel style descriptions quickly hit diminishing returns. 
 
-```{r}
-#Chck for NA
-anyNA(df_engr$avg_contribution)
-
-mean(df_engr$avg_contribution, na.rm = TRUE)
-
-# Apparently normal distribution
-df_filtered_by_avg_contribution <- df_engr %>%
-  filter(avg_contribution < 1500)
-
-# Box Plot
-boxplot(df_filtered_by_avg_contribution$avg_contribution)
-
-# Histogram
-df_filtered_by_avg_contribution %>%
-  ggplot() + 
-  geom_histogram(aes(x = avg_contribution))
-
-#Clean up
-rm(df_filtered_by_avg_contribution)
-```
-
-
-
-##$description_length
-
-```{r}
+```{r echo=FALSE}
 df_engr %>% 
   ggplot(aes(x = description_length_10, y = funded)) +
   stat_summary(geom = "bar", fun.y = "mean", fill = "#332288") +
     labs(
-    title = "Funding By Description",
+    title = "Funding By Description Length",
     x="Length of Description", 
-    y="Chance of Funding") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
+    y="Chance of Funding")
 ```
 
 
-##$rewards
+### `rewards`
 
 ```{r}
 df_engr %>% 
@@ -372,32 +343,7 @@ df_engr %>%
     title = "Funding By Rewards",
     x="Length of Rewards", 
     y="Chance of Funding") + 
-  theme_minimal() +
-  theme_update(axis.text.x = element_text(angle = 60, hjust = 1))
 
-```
-
-## Date variables
-```{r}
-#Average of 2-20 minutes difference btween deadline and failed_at, successful_at, state_changed_at
-#Difference is not meaningful, so remove failed_at, successful_at, state_changed_at
-ticktock <- data.frame(db_cleaned$created_at, 
-                       db_cleaned$deadline, 
-                       db_cleaned$failed_at, 
-                       db_cleaned$launched_at, 
-                       db_cleaned$state_changed_at, 
-                       db_cleaned$successful_at)
-
-ticktock <- mutate(ticktock, 
-                   deadline_failed = db_cleaned.deadline - db_cleaned.failed_at,
-                   deadline_success = db_cleaned.deadline - db_cleaned.successful_at,
-                   deadline_state = db_cleaned.deadline - db_cleaned.state_changed_at)
-
-mean(ticktock$deadline_failed, na.rm = TRUE)
-mean(ticktock$deadline_success, na.rm = TRUE)
-mean(ticktock$deadline_state)
-
-rm(ticktock)
 ```
 
 ## Not Fully Explored
@@ -496,4 +442,50 @@ df_engr %>%
             max(backers_count), 
             mean(avg_contribution, na.rm = TRUE)) %>%
   ungroup(funded)
+```
+
+```{r include=FALSE, eval=FALSE}
+##$avg_contribution
+#Appears to have a skewed normal distribution with a mean of $72.
+
+#mean(df_engr$avg_contribution, na.rm = TRUE)
+
+# Apparently normal distribution
+df_filtered_by_avg_contribution <- df_engr %>%
+  filter(avg_contribution < 1500)
+
+# Box Plot
+boxplot(df_filtered_by_avg_contribution$avg_contribution)
+
+# Histogram
+df_filtered_by_avg_contribution %>%
+  ggplot() + 
+  geom_histogram(aes(x = avg_contribution))
+
+#Clean up
+rm(df_filtered_by_avg_contribution)
+```
+
+
+```{r eval=FALSE, include=FALSE}
+## Date variables
+#Average of 2-20 minutes difference btween deadline and failed_at, successful_at, state_changed_at
+#Difference is not meaningful, so remove failed_at, successful_at, state_changed_at
+ticktock <- data.frame(db_cleaned$created_at, 
+                       db_cleaned$deadline, 
+                       db_cleaned$failed_at, 
+                       db_cleaned$launched_at, 
+                       db_cleaned$state_changed_at, 
+                       db_cleaned$successful_at)
+
+ticktock <- mutate(ticktock, 
+                   deadline_failed = db_cleaned.deadline - db_cleaned.failed_at,
+                   deadline_success = db_cleaned.deadline - db_cleaned.successful_at,
+                   deadline_state = db_cleaned.deadline - db_cleaned.state_changed_at)
+
+mean(ticktock$deadline_failed, na.rm = TRUE)
+mean(ticktock$deadline_success, na.rm = TRUE)
+mean(ticktock$deadline_state)
+
+rm(ticktock)
 ```
