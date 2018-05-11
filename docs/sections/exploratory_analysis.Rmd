@@ -22,6 +22,7 @@ theme_update(plot.title = element_text(hjust = 0.5))
 ## Ex Post Facto
 > Ex Post Facto variables that are generated after the start of the project. These are interesting to examine and can provide valuable insight into Kickstarter, however, they are not appropriate to use in our predictive models as they are pseudo outcome variables. Some, such as `comments`, can provide direction to a project creator on what to do mid-project to increase their cahnce of funding. 
 
+***
 ### `backers_count`
 > `backers_count` is a powerful predictor of project funding. We can see that the distribution resembles a logistic function. We found it surprising that even at the top 5% of `backers_count` there are still projects that are not funded. We hypothesize that these projects have an extremely large `goal`.
 
@@ -94,11 +95,13 @@ df_engr %>%
   ungroup(spotlight)
 ```
 
+***
 ## Day Zero
-Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
+> Day Zero variables are any which can be observed and/or controlled at the start of the project. These are the most important for our predictive models as they allow us to predict a project's funding before any Kickstarter activity. 
 
+***
 ### `goal`
-One of the most obvious, and ultimately significant predicters is `goal`. It shows a clear downward trend in funding success as the amount increases. While this is intuitive, it is worth noting that it does not appear linear. For this reason, we used the quantile function to account for this distribution. 
+> One of the most obvious, and ultimately significant predicters is `goal`. It shows a clear downward trend in funding success as the amount increases. While this is intuitive, it is worth noting that it does not appear linear. For this reason, we used the quantile function to account for this distribution. 
 
 ```{r echo = FALSE}
 df_engr %>% 
@@ -111,21 +114,24 @@ df_engr %>%
 
 ```
 
-
+***
 ### `category`
 
-Some categories never fail in this dataset (only considered if n > 50):
+> Some categories never fail in this dataset (only considered if n > 50):
+
 * design/product design (1098 projects)
 * film & video/documentary (2202 projects)
 * film & video/shorts (3513 projects)
 * games/tabletop games (1064 projects)  
 
-Most successful parent categories (only considered if n > 100):
+> Most successful parent categories (only considered if n > 100):
+
 * 7 1,725 projects 81.2% successful
 * 11 12,087 projects 65.2% successful
 * 14 14,635 projects 59.2% successful  
 
-Least successful parent categories (only considered if n > 100):
+> Least successful parent categories (only considered if n > 100):
+
 * 18 8,725 projects 39.7% successful
 * 16 1,638 projects 46.2% successful
 * 12 4,125 projects 46.9% successful  
@@ -162,8 +168,8 @@ df_engr %>%
 #rm(logit_category)
 ```
 
-#### Frequency by `category`
-The distribution of projects by category shows Kickstarter has an intense focus on creative projects. We hypothesize that the minimal appearance of some categories suggests that Kickstarter's classification system tends to favor large, general grouping. It may also be arbitrary in some instances as many `dance` and `photography` projects could readily be placed in `art`.
+***
+> The distribution of projects by category shows Kickstarter has an intense focus on creative projects. We hypothesize that the minimal appearance of some categories suggests that Kickstarter's classification system tends to favor large, general grouping. It may also be arbitrary in some instances as many `dance` and `photography` projects could readily be placed in `art`.
 
 ```{r echo = FALSE}
 df_engr %>% 
@@ -176,9 +182,8 @@ df_engr %>%
        y="Number of Projects")
 
 ```
-
-#### Funding by `category`
-The chance of funding does not follow a similar pattern to the category frequency distribution. In fact, the sparsely populated categories have near perfect funding rates. Further investigation into these anomalies, such as exploring correlation to variables such as `spotlight` may reveal a selection bias for obscure classification. 
+***
+> The chance of funding does not follow a similar pattern to the category frequency distribution. In fact, the sparsely populated categories have near perfect funding rates. Further investigation into these anomalies, such as exploring correlation to variables such as `spotlight` may reveal a selection bias for obscure classification. 
 
 ```{r echo = FALSE}
 df_engr %>% 
@@ -191,8 +196,9 @@ df_engr %>%
        y="Chance of Funding")
 ```
 
+***
 ### 'launched_at'
-The number of projects increased exponentially 2009 - 2012 and seemed to be increasing more gradually after 2012. We only collected data through December of 2013 and anticipate continued growth for subsequent years.
+> The number of projects increased exponentially 2009 - 2012 and seemed to be increasing more gradually after 2012. We only collected data through December of 2013 and anticipate continued growth for subsequent years.
 
 ```{r echo=FALSE}
 df_engr %>% 
@@ -204,7 +210,7 @@ df_engr %>%
     y="Projects Launched")
 ```
 
-We explored fundy by `mo_launched` to see if seasonality impacts Kickstarter. The most dramatic dips occur in May and December. This is consistent with our understanding of financial markets in general... they slow down early summer and have much lower volume around the holiday season.
+> We explored fundy by `mo_launched` to see if seasonality impacts Kickstarter. The most dramatic dips occur in May and December. This is consistent with our understanding of financial markets in general... they slow down early summer and have much lower volume around the holiday season.
 
 ```{r echo=FALSE}
 df_engr %>% 
@@ -217,8 +223,9 @@ df_engr %>%
 
 ```
 
+***
 ### `country`
-The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects. We believe two factors drive this difference. First, Kickstarter is a U.S. based company and will, therefore, better meet the needs of its customers. Secondly, crowdfunding requires a critical mass of people to support a project ecosystem. As backer are most likely to fund projects in their country, any new regional expansions will have lower success rates while the critical mass develops.  
+> The majority of projects are based in the United States. Domestic projects have a success rate about 7% higher than international projects. We believe two factors drive this difference. First, Kickstarter is a U.S. based company and will, therefore, better meet the needs of its customers. Secondly, crowdfunding requires a critical mass of people to support a project ecosystem. As backer are most likely to fund projects in their country, any new regional expansions will have lower success rates while the critical mass develops.  
 
 ```{r echo=FALSE}
 df_country <- data.frame(funded = df_engr$funded, country = db_cleaned$country, usa = df_engr$usa)
@@ -235,9 +242,9 @@ summary(lm(funded ~ usa, data = df_country))
 rm(df_country)
 ```
 
-
+***
 ### `photo_key`
-There are very few projects that do not at least have a photo. Consequently, a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
+> There are very few projects that do not at least have a photo. Consequently, a t-test shows no significant difference between having and not having a photo. This is probably not because photos don't matter, but rather because the sample with no photo is too small to have statistical power.
 
 ```{r echo=FALSE}
 df_engr %>%
@@ -248,9 +255,9 @@ df_engr %>%
 t.test(funded ~ photo_key, data = df_engr)
 ```
 
-
+***
 ### `video_status`
-We hypothesized that `video_status` would be a powerful predictor as it is a proxy for whether or not the project has a video. We can see that the t-test 'video_status` to statistically significantly impact the success of the project. 
+> We hypothesized that `video_status` would be a powerful predictor as it is a proxy for whether or not the project has a video. We can see that the t-test 'video_status` to statistically significantly impact the success of the project. 
 
 ```{r}
 df_engr %>%
@@ -261,8 +268,9 @@ df_engr %>%
 t.test(funded ~ video_status, data = df_engr)
 ```
 
-##Social media connectedness variables
-Social media shows an impact. Facebook seems to be the strongest and Youtube has a negative coefecient. Our hypothesis is that Facebook and Twitter may be used for promotion, while creators focusing on YouTube may over rely on their product content. Yet the most successfull creators have all three, which supports that YouTube is effective when paired with a comprehensive social media campaign.
+***
+##Social media connectedness
+> Social media shows an impact. Facebook seems to be the strongest and Youtube has a negative coefecient. Our hypothesis is that Facebook and Twitter may be used for promotion, while creators focusing on YouTube may over rely on their product content. Yet the most successfull creators have all three, which supports that YouTube is effective when paired with a comprehensive social media campaign.
 
 ```{r}
 #facebook
@@ -298,8 +306,9 @@ df_engr %>%
 
 ```
 
+***
 ### `campaign_duration`
-Interestingly, campaign duration has an inverse relationship to the likelihood of receiving funding; longer campaign are associated with higher failure rates.
+> Interestingly, campaign duration has an inverse relationship to the likelihood of receiving funding; longer campaign are associated with higher failure rates.
 
 ```{r echo=FALSE}
 
@@ -319,8 +328,9 @@ rm(df_camp_dur)
 
 ```
 
+***
 ### `description_length`
-We believe that a description can have a significant impact on a project's funding. In this projects next steps, we hope to extract more meaningful variables from the text analysis we have conducted. However, even in the most basic form, `description_length` shows a clear trend. It improves the chance of funding and then levels off. This implies that putting in the effort to make a detailed description is worthwhile. However, excessive wordiness and/or novel style descriptions quickly hit diminishing returns. 
+> We believe that a description can have a significant impact on a project's funding. In this projects next steps, we hope to extract more meaningful variables from the text analysis we have conducted. However, even in the most basic form, `description_length` shows a clear trend. It improves the chance of funding and then levels off. This implies that putting in the effort to make a detailed description is worthwhile. However, excessive wordiness and/or novel style descriptions quickly hit diminishing returns. 
 
 ```{r echo=FALSE}
 df_engr %>% 
@@ -332,8 +342,10 @@ df_engr %>%
     y="Chance of Funding")
 ```
 
-
+***
 ### `rewards`
+> We suspected that how a creator structures their `reward` scheme would have a significant impact on the project also. Due to time constraints and the complex nature of its nested data structure, for this iteration, we explored the schemes length. We see a steep slope that flattens with a final jump at the end. This tells the story. The first bucket consists primarily of projects without rewards and that backers are not impressed. By the fifth bucket, we see diminishing returns, likely due to unnecessary detail and complexity. In the last bin, it looks like some creators go the extra mile and their backers appreciate it.
+
 
 ```{r}
 df_engr %>% 
@@ -346,8 +358,9 @@ df_engr %>%
 
 ```
 
-## Not Fully Explored
-More granular location variables would require more cleaning and may produce regional insights. 
+> Not Fully Explored
+More granular location variables would require more cleaning and may produce regional insights.
+
 * `location_name`
 * `location_state`
 * `location_type`
@@ -356,8 +369,9 @@ More granular location variables would require more cleaning and may produce reg
 * `profile_state`
 
 
-## Rejected
-We looked at this, yet did not find them to be predictive:
+> Rejected
+We looked at this, yet did not find them to be predictive
+
 * `project_id`
 * `disable_communicaiton`
 
