@@ -139,7 +139,7 @@ for (j in 1:ncol(db)) {
 }
 ```
 
-#Acknowledgements
+##Acknowledgements
 The following resources were invaluable to the completion of the project:
 
 * Text Mining with R: A Tidy Approach (Silge & Robinson, 2018; https://www.tidytextmining.com)
