@@ -9,13 +9,21 @@ knitr::opts_chunk$set(echo = TRUE)
 
 
 # About the Project
+> We are members of the MBA Class of 2018 from the University of Illinois Geis College of Business. This is our capstone project to complete our concentration in Business Data Analytics. We were excited about this project not only because we wanted to learn more about an exciting topic, crowdfunding, but also knew it would be the perfect blend of business strategy and data analytics. We set out to answer two primary questions:
+
+> __Can we use machine learning to predict which Kickstarter projects will be funded?__
+
+> __Can we discover any interesting insights that could help future creators bring their projects to life?__
+
+> While most academic projects are pre-fabricated with clean resources and clear direction, this was not. We did this one from scratch! Here is a highlight real
+
  > The project described below encompasses:
 
 * Data collection of Kickstarter projects and creators
 * Data cleaning
 * Exploration of datasets
 * Analysis of unstructured text data
-* Machine learning algoriths to predict project success
+* Machine learning algorithms to predict project success
 
 > From our analysis, we seek to make recommendations to entrepreneurs, regarding when and how to employ crowdfunding for project financing. 
  
@@ -25,7 +33,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 > Little academic research has been conducted on crowdfunding, and there are many interesting areas for investigation. From a financial perspective, it is disrupting the small- and medium- enterprise (SME) lending market. Economically, it may be changing the prevalence and makeup of SMEs. In terms of marketing, it gives consumers a greater say in the products they would like to see available, but also exposes them to increased risk. Regarding information and technology, it is enabling innovation through a public platform.
 
-# Data Collection and Cleaning
+## Data Collection and Cleaning
 
 > Raw data were obtained from Kickstarter using a custom python web scraping function. These data included 50,596 projects and 120 variables pertaining to the projects and their creators from the launch of Kickstarter in 2009 through December 2013. 
 
